@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {makePuzzle,blankState,validatePuzzle,validateState,applyMove,autoBlocked,assess,solve,neighbors,ruleHolds,coverage} from '../public/engine.js';
 import {demoPuzzle} from '../public/demo.js';
-import {detectGridPixels,pageText} from '../public/pdf.js';
+import {detectGridPixels,refineGridPixels,pageText} from '../public/pdf.js';
 
 test('original demonstration has exactly one solution and the correct murderer',()=>{
   const p=demoPuzzle(), result=solve(p);
@@ -98,4 +98,50 @@ test('grid detector finds the principal regular grid in a raster',()=>{
 test('page text uses the full PDF response and supports older word-only responses',()=>{
   assert.equal(pageText({text:'Anna\nComplete clue',words:[{text:'Anna'}]}),'Anna\nComplete clue');
   assert.equal(pageText({words:[{text:'Anna'},{text:'clue'}]}),'Anna clue');
+});
+
+test('grid detector retains dense grids with fractional pixel spacing',()=>{
+  const width=900,height=900,start=70,span=743;
+  for(const count of [8,10,12,16,24]){
+    const pixels=new Uint8ClampedArray(width*height*4).fill(255);
+    for(let k=0;k<=count;k++){
+      const position=Math.round(start+k*span/count);
+      for(let j=start;j<=start+span;j++)for(let offset=0;offset<2;offset++){
+        for(const index of [(j*width+position+offset)*4,((position+offset)*width+j)*4])pixels.fill(0,index,index+3);
+      }
+    }
+    const grid=detectGridPixels(pixels,width,height);
+    assert.ok(grid,`${count}×${count} grid detected`);
+    assert.equal(grid.rows,count);assert.equal(grid.cols,count);
+    assert.ok(Math.abs(grid.x-start/width)<1/width);
+    assert.ok(Math.abs(grid.w-span/width)<1/width);
+  }
+});
+
+test('grid bounds stop at the frame despite aligned marks outside it',()=>{
+  const width=1100,height=850,pixels=new Uint8ClampedArray(width*height*4).fill(255);
+  const left=558,top=240,step=32.75,count=16,span=step*count;
+  const fill=(x,y,w,h,value=0)=>{
+    for(let yy=Math.max(0,Math.round(y));yy<Math.min(height,Math.round(y+h));yy++)
+      for(let xx=Math.max(0,Math.round(x));xx<Math.min(width,Math.round(x+w));xx++){
+        const i=(yy*width+xx)*4;pixels[i]=pixels[i+1]=pixels[i+2]=value;
+      }
+  };
+  for(let k=0;k<=count;k++){
+    const thickness=k===0||k===count?7:2;
+    fill(left+k*step-thickness/2,top,thickness,span);
+    fill(left,top+k*step-thickness/2,span,thickness);
+  }
+  // Partial illustrations obscure the top stroke; nearby text extends its rhythm.
+  for(const k of [3,7,12])fill(left+k*step-8,top-4,16,10,255);
+  for(let k=0;k<16;k++){
+    fill(left+k*step,top+span+step-1,16,2);
+    fill(left+k*step,top+span+2*step-1,16,2);
+  }
+  const grid=detectGridPixels(pixels,width,height);
+  assert.ok(grid);assert.equal(grid.rows,count);assert.equal(grid.cols,count);
+  assert.ok(Math.abs(grid.y*height-top)<3);
+  assert.ok(Math.abs(grid.h*height-span)<3);
+  const refined=refineGridPixels(pixels,width,height,grid);
+  for(const [actual,expected] of [[refined.x*width,left],[refined.y*height,top],[refined.w*width,span],[refined.h*height,span]])assert.ok(Math.abs(actual-expected)<1);
 });

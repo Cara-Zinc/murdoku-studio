@@ -2,7 +2,7 @@ import {normalizeView,viewBounds,containsCell,localToGlobal,globalToLocal} from 
 import {setupNavigation} from './navigation.js';
 import {makePuzzle,blankState,clone,validatePuzzle,validateState,applyMove,autoBlocked,assess,coverage,personLabel} from './engine.js';
 import {demoPuzzle} from './demo.js';
-import {renderDocument,fileImage,cropImage,detectGrid,suggestPeople,pageText} from './pdf.js';
+import {renderDocument,fileImage,cropImage,detectGrid,suggestPeople,pageText,renderAlignmentGrid} from './pdf.js';
 import {saveCase,currentCase,getCase,listCases,deleteCase,readSetting,saveSetting} from './storage.js';
 import {matchPortraits} from './portraits.js';
 import {editPortrait} from './portrait-editor.js';
@@ -62,7 +62,7 @@ function render(){
 function renderBoard(){
   const board=$('board'), {rows,cols,cells}=p(), art=$('show-art').checked&&p().background;
   const b=bounds();if(!containsCell(p(),b,currentCell))currentCell=b.row*p().cols+b.col;
-  board.style.gridTemplateColumns=`repeat(${b.cols}, minmax(0,1fr))`;board.style.aspectRatio=`${b.cols} / ${b.rows}`;
+  board.style.gridTemplateColumns=`repeat(${b.cols}, minmax(0,1fr))`;board.style.gridTemplateRows=`repeat(${b.rows}, minmax(0,1fr))`;board.style.aspectRatio=`${b.cols} / ${b.rows}`;
   board.style.backgroundSize=`${cols/b.cols*100}% ${rows/b.rows*100}%`;
   board.style.backgroundPosition=`${cols===b.cols?0:b.col/(cols-b.cols)*100}% ${rows===b.rows?0:b.row/(rows-b.rows)*100}%`;
   board.style.backgroundImage=art?`url("${p().background}")`:'';
@@ -210,15 +210,15 @@ async function prepareAlignment(){
 function fitAlignmentPreview(){
   const image=$('preview-image'), pane=$('alignment-preview-pane'), preview=$('page-preview');
   if(!image.naturalWidth||!image.naturalHeight||!pane.clientWidth||!pane.clientHeight)return;
-  const scale=Math.min(pane.clientWidth/image.naturalWidth,pane.clientHeight/image.naturalHeight);
-  preview.style.width=`${Math.max(1,Math.floor(image.naturalWidth*scale))}px`;
-  preview.style.height=`${Math.max(1,Math.floor(image.naturalHeight*scale))}px`;
+  const scale=Math.min((pane.clientWidth-2)/image.naturalWidth,(pane.clientHeight-2)/image.naturalHeight);
+  preview.style.width=`${Math.max(1,Math.floor(image.naturalWidth*scale)+2)}px`;
+  preview.style.height='auto';
 }
 async function detectPending(){
   if(!pending)return;$('import-status').textContent='正在寻找规则网格…';$('detect-btn').disabled=true;
   try{await new Promise(r=>setTimeout(r,20));const suggestion=await detectGrid(pending.page.image);if(suggestion){rect={x:suggestion.x,y:suggestion.y,w:suggestion.w,h:suggestion.h};$('import-rows').value=suggestion.rows;$('import-cols').value=suggestion.cols;$('import-count').value=Math.min(suggestion.rows,suggestion.cols);$('import-status').textContent=`检测到 ${suggestion.rows} × ${suggestion.cols} 的候选网格。请确认框线准确覆盖主棋盘；可能识别到了原页中的小型笔记网格。`;}else{$('import-status').textContent='未找到可靠的网格。请手动拖动四角框住棋盘，再填写行列数。';}updateAlignment();}catch(error){$('import-status').textContent=error.message;}finally{$('detect-btn').disabled=false;}
 }
-function updateAlignment(){rect.x=Math.max(0,Math.min(.98,rect.x));rect.y=Math.max(0,Math.min(.98,rect.y));rect.w=Math.max(.02,Math.min(1-rect.x,rect.w));rect.h=Math.max(.02,Math.min(1-rect.y,rect.h));const box=$('grid-selection');Object.assign(box.style,{left:`${rect.x*100}%`,top:`${rect.y*100}%`,width:`${rect.w*100}%`,height:`${rect.h*100}%`,backgroundSize:`${100/Number($('import-cols').value)}% ${100/Number($('import-rows').value)}%`});document.querySelectorAll('[data-rect]').forEach(input=>input.value=(rect[input.dataset.rect]*100).toFixed(2));}
+function updateAlignment(){rect.x=Math.max(0,Math.min(.98,rect.x));rect.y=Math.max(0,Math.min(.98,rect.y));rect.w=Math.max(.02,Math.min(1-rect.x,rect.w));rect.h=Math.max(.02,Math.min(1-rect.y,rect.h));const box=$('grid-selection');Object.assign(box.style,{left:`${rect.x*100}%`,top:`${rect.y*100}%`,width:`${rect.w*100}%`,height:`${rect.h*100}%`});renderAlignmentGrid(box,Number($('import-rows').value),Number($('import-cols').value));document.querySelectorAll('[data-rect]').forEach(input=>input.value=(rect[input.dataset.rect]*100).toFixed(2));}
 function refreshImportPeople(){
   if(!pending)return;
   const valid=id=>Math.max(1,Math.min(64,Math.trunc(Number($(id).value)||9)));
@@ -274,7 +274,7 @@ async function showLibrary(){await persist().catch(()=>{});await renderLibrary()
 async function renderLibrary(){const list=$('library-list');list.replaceChildren();try{const cases=(await listCases()).sort((a,b)=>b.updated-a.updated);for(const item of cases){const row=el('div','library-row'),info=el('div');info.append(el('strong','',item.title),el('small','',`${item.placed} / ${item.total} 人 · ${new Date(item.updated).toLocaleString('zh-CN')}`));const open=el('button','',item.id===workspace.id?'当前案件':'继续');open.disabled=item.id===workspace.id;open.onclick=async()=>{try{const data=await getCase(item.id);validatePuzzle(data.puzzle);data.state=validateState(data.puzzle,data.state);await activate(data);$('library-dialog').close();}catch(error){toast(error.message);}};const remove=el('button','','删除');remove.disabled=item.id===workspace.id;remove.onclick=()=>message('删除这个存档？',`「${item.title}」将从此浏览器删除。已导出的 JSON 不受影响。`,[{label:'取消'},{label:'删除',action:async()=>{await deleteCase(item.id);renderLibrary();}}]);row.append(info,open,remove);list.append(row);}}catch{list.append(el('p','','本机存储不可用。请使用 JSON 导出备份。'));}}
 
 // Case editor: work on a draft until the entire model validates.
-function openEditor(){edit=clone(p());editState=clone(s());editPerson=0;if(!edit.originalPage&&edit.background)edit.grid={x:0,y:0,w:1,h:1};else if(!edit.grid)edit.grid={x:0,y:0,w:1,h:1};$('edit-title').value=edit.title;$('map-editor').hidden=false;$('people-editor').hidden=true;$('map-tab').classList.add('active');$('people-tab').classList.remove('active');$('editor-status').textContent='';renderRoomOptions();renderEditorGrid();renderEditorSource();renderPersonEditor();$('editor-dialog').showModal();refreshEditorText();}
+function openEditor(){edit=clone(p());editState=clone(s());editPerson=0;if(!edit.originalPage&&edit.background)edit.grid={x:0,y:0,w:1,h:1};else if(!edit.grid)edit.grid={x:0,y:0,w:1,h:1};$('edit-title').value=edit.title;$('map-editor').hidden=false;$('people-editor').hidden=true;$('map-tab').classList.add('active');$('people-tab').classList.remove('active');$('editor-status').textContent='';$('save-editor').disabled=false;$('realign-grid').disabled=!edit.originalPage;renderRoomOptions();renderEditorGrid();renderEditorSource();renderPersonEditor();$('editor-dialog').showModal();refreshEditorText();}
 async function refreshEditorText(){
   if(edit.extractedTextVersion===2||!workspace.book?.bytes)return;
   const caseId=edit.id, page=workspace.book.page;
@@ -300,8 +300,25 @@ function renderEditorSource(){
 function updateEditorGrid(){
   if(!edit||( !edit.originalPage&&!edit.background)||!edit.grid)return;
   const r=edit.grid;r.x=Math.max(0,Math.min(.98,r.x));r.y=Math.max(0,Math.min(.98,r.y));r.w=Math.max(.02,Math.min(1-r.x,r.w));r.h=Math.max(.02,Math.min(1-r.y,r.h));
-  Object.assign($('editor-grid-selection').style,{left:`${r.x*100}%`,top:`${r.y*100}%`,width:`${r.w*100}%`,height:`${r.h*100}%`,backgroundSize:`${100/edit.cols}% ${100/edit.rows}%`});
+  Object.assign($('editor-grid-selection').style,{left:`${r.x*100}%`,top:`${r.y*100}%`,width:`${r.w*100}%`,height:`${r.h*100}%`});
+  renderAlignmentGrid($('editor-grid-selection'),edit.rows,edit.cols);
   document.querySelectorAll('[data-editor-grid]').forEach(input=>input.value=(r[input.dataset.editorGrid]*100).toFixed(2));
+}
+async function realignEditorGrid(){
+  const draft=edit;if(!draft?.originalPage)return;
+  $('realign-grid').disabled=true;$('save-editor').disabled=true;$('editor-status').textContent='正在重新检测网格…';
+  try{
+    const grid=await detectGrid(draft.originalPage);
+    if(edit!==draft||!$('editor-dialog').open)return;
+    if(!grid)throw Error('未找到可靠网格，请手动调整原图上的边框。');
+    if(grid.rows!==draft.rows||grid.cols!==draft.cols)throw Error(`检测到 ${grid.rows} × ${grid.cols}，与当前 ${draft.rows} × ${draft.cols} 不同。请核对后重新导入，或手动调整边框。`);
+    const rect={x:grid.x,y:grid.y,w:grid.w,h:grid.h};
+    const background=await cropImage(draft.originalPage,rect);
+    if(edit!==draft||!$('editor-dialog').open)return;
+    draft.grid=rect;draft.background=background;updateEditorGrid();renderEditorGrid();
+    $('editor-status').textContent='已重新对齐，请核对后保存。人物位置、笔记和区域标注保持不变。';
+  }catch(error){if(edit===draft&&$('editor-dialog').open)$('editor-status').textContent=error.message;}
+  finally{if(edit===draft){$('realign-grid').disabled=false;$('save-editor').disabled=false;}}
 }
 function renderRoomOptions(){const previous=$('paint-room').value;$('paint-room').replaceChildren(...edit.rooms.map(room=>{const option=el('option','',room.name);option.value=room.id;return option;}));if(edit.rooms.some(r=>r.id===previous))$('paint-room').value=previous;selectRoom();}
 function selectRoom(){const room=edit.rooms.find(r=>r.id===$('paint-room').value);if(room){$('room-name').value=room.name;$('room-color').value=room.color;}}
@@ -421,7 +438,7 @@ $('relabel-people').onclick=()=>{
 };
 $('edit-portrait').onclick=adjustPortrait;
 $('clear-portrait').onclick=()=>{delete edit.people[editPerson].portrait;renderPortraitEditor();};
-$('add-rule').onclick=addRule;$('save-editor').onclick=saveEditor;
+$('add-rule').onclick=addRule;$('save-editor').onclick=saveEditor;$('realign-grid').onclick=realignEditorGrid;
 $('rule-type').onchange=()=>{$('rule-gender').hidden=!['otherOn','otherBeside'].includes($('rule-type').value);$('rule-value').disabled=$('rule-type').value==='alone';$('rule-value').placeholder=['row','col'].includes($('rule-type').value)?'从 1 开始，例如 3':$('rule-type').value==='cells'?'例如 A1,B3,C5':'已有区域名称、物品名或人物编号';};
 document.addEventListener('keydown',event=>{
   if(document.querySelector('dialog[open]')||/^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName)||event.isComposing)return;

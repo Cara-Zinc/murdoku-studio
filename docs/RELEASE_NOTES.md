@@ -1,5 +1,15 @@
 # v1.1.0 Web UI — merge notes / 合并说明
 
+## Unreleased / 未发布
+
+- Fix dense-map grid detection: fit fractional spacing, verify all four borders, and refine alignment against internal lines at source resolution.
+- Draw import/editor guide lines without repeated raster tiles; explicitly size board rows and columns.
+- Use **Edit case → Re-detect alignment** to repair the crop of an existing case with matching dimensions. Placements and notes are preserved; saving an edit clears undo history as before. Existing crops are not changed automatically.
+- 修复大地图网格检测：拟合小数格距、校验四条边界，并按原图内部网格精确校准。
+- 导入和编辑预览改用独立矢量网格线，游戏棋盘明确等分行列。
+- 旧案件可在「编辑案件 → 重新检测对齐」中修复裁切。行列数必须一致；保留人物位置与笔记。保存编辑仍会清空撤销记录，旧裁切范围不会自动修改。
+
+
 ## Included / 已合并
 
 The UI and PDF changes from the supplied `murdoku-studio-1.0.0.zip` are integrated: editable import previews, original-page references in the editor, board recropping, full page text, optional English OCR, and drafts without a designated victim. Existing portrait crops, initial-based IDs, automatic crosses, and save files remain supported.

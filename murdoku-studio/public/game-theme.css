@@ -386,3 +386,9 @@ dialog::backdrop { background: #191922a6; backdrop-filter: none; }
 @media (min-width: 901px) {
   .game-panel:fullscreen:has(#map-navigation:not([hidden])) .board-wrap { max-width: min(100%, calc(100dvh - 410px)); }
 }
+
+/* Keep the crop rectangle and its grid in the same coordinate space. */
+.grid-selection { border: 0; outline: 2px solid #d37230; background-image: none; }
+.alignment-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; fill: none; stroke: #d37230; stroke-opacity: .65; stroke-width: 1; }
+.board { background-origin: content-box; background-clip: content-box; background-repeat: no-repeat; }
+.board > .cell { min-height: 0; aspect-ratio: auto; }
