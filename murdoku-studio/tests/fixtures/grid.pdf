@@ -1,0 +1,53 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 6 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 500 600] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 456 >>
+stream
+0 0 0 RG 1 w
+BT /F1 24 Tf 50 550 Td (Studio fixture) Tj ET
+100 100 m 100 400 l S
+100 100 m 400 100 l S
+150 100 m 150 400 l S
+100 150 m 400 150 l S
+200 100 m 200 400 l S
+100 200 m 400 200 l S
+250 100 m 250 400 l S
+100 250 m 400 250 l S
+300 100 m 300 400 l S
+100 300 m 400 300 l S
+350 100 m 350 400 l S
+100 350 m 400 350 l S
+400 100 m 400 400 l S
+100 400 m 400 400 l S
+BT /F1 14 Tf 50 480 Td (Anna) Tj ET
+BT /F1 11 Tf 50 460 Td (She was beside a desk.) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 500 600] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000000317 00000 n 
+0000000824 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+950
+%%EOF

@@ -1,0 +1,33 @@
+# v1.1.0 Web UI — merge notes / 合并说明
+
+## Included / 已合并
+
+The UI and PDF changes from the supplied `murdoku-studio-1.0.0.zip` are integrated: editable import previews, original-page references in the editor, board recropping, full page text, optional English OCR, and drafts without a designated victim. Existing portrait crops, initial-based IDs, automatic crosses, and save files remain supported.
+
+已合并搭档 ZIP 中的导入预览编辑、原图对照、棋盘重新裁剪、完整原文、可选英文 OCR，以及不指定受害者的草稿。保留头像裁剪、姓名首字母编号、自动黑叉和旧版存档支持。
+
+## Large maps / 大地图
+
+- Boards with a dimension of 16 or more default to an 8×8 viewport. Window sizes: 6, 8, 10, and 12.
+- Mini-map dragging, coordinate jumps, person location, camera history, panning, and fullscreen navigation.
+- Global placements, candidates, ink, exclusions, and keyboard coordinates; offscreen occupant badges on axes.
+- Independent saved views for each PDF page and JSON export; 3600-pixel rendering for newly imported large PDF boards.
+- Searchable people list and an unplaced-person filter.
+
+大题默认使用局部观察窗口，配合小地图拖动、坐标定位、人物定位、历史视野与平移。放置、候选、手绘和排除始终按全图计算。支持全屏导航、逐页视野保存、高清 PDF 与人物筛选。
+
+## Verification / 验证
+
+Syntax checks and the Node.js/Python test suites pass locally. Browser checks cover the partner import/editor flow, a synthetic original 24×24 scene, global coordinates, offscreen exclusions, undo/redo, ink, camera movement, refresh and JSON recovery, multi-page PDF view recovery, portrait editing, desktop fullscreen, and 390px mobile layout. A real original fixture PDF was converted at 3600 pixels.
+
+本地语法检查及 Node.js/Python 测试通过。浏览器已验证搭档的导入/编辑流程、原创 24×24 场景、全局坐标、窗口外排除、撤销重做、手绘、视野移动、刷新及 JSON 恢复、多页 PDF 独立视野、头像编辑、桌面全屏与 390px 手机布局。原创 PDF 样本已实际完成 3600 像素转换。
+
+The optional OCR branch is covered with simulated Tesseract responses; OCR accuracy on real contest scans is not established. Contest-specific treasure objectives are not implemented. GitHub Actions is configured, but a remote run requires uploading the repository.
+
+可选 OCR 分支使用模拟 Tesseract 响应测试，尚未验证真实大赛扫描件的识别准确率。未实现大赛专用宝箱判定。GitHub Actions 已配置，上传仓库后才能运行远程检查。
+
+## Save compatibility / 存档兼容
+
+The puzzle format stays at version 1. A separate optional `view` field records display mode, size, row, and column. Older saves receive a default view. Navigation does not enter the game undo stack. Camera history is session-only. Existing low-resolution page images remain usable and require reimporting the PDF to improve image quality.
+
+棋盘格式仍为 version 1，另用可选的 `view` 字段记录显示模式、大小和起始行列。旧存档自动选择默认视野。浏览操作不进入解谜撤销栈，视野历史仅在本次会话内保留。已有低分辨率图片仍可使用，提升清晰度需重新导入 PDF。

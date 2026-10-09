@@ -1,0 +1,60 @@
+# Python caches, environments, and local tooling
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# JavaScript dependencies and generated output
+node_modules/
+coverage/
+dist/
+build/
+*.tsbuildinfo
+
+# Local browser sessions, screenshots, and release artifacts
+.playwright-cli/
+playwright-report/
+test-results/
+.sites-runtime/
+output/
+*.log
+*.tmp
+*.temp
+
+# Personal puzzle imports and exported saves. Keep the original test fixture.
+imports/
+saves/
+*.pdf
+!murdoku-studio/tests/fixtures/grid.pdf
+*.murdoku.json
+*.murdoku
+
+# Local settings and credentials; example configuration can be committed
+.env
+.env.*
+!.env.example
+!.env.*.example
+.aws/
+.codex/
+.agents/
+*.pem
+*.key
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Incoming source archives and distribution bundles
+*.zip
