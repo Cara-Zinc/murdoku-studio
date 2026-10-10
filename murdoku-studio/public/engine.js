@@ -1,4 +1,4 @@
-// All coordinates are zero-based. Auto exclusions are derived, never destructive.
+// All coordinates are zero-based. Auto exclusions are derived from placements.
 export const clone = (value) => structuredClone(value);
 export function blankState() {
   return { placements: {}, notes: {}, excluded: [], colors: {}, checked: [], ink: [], elapsed: 0, accusation: null };
@@ -133,7 +133,7 @@ export function assess(p,s) {
 export function autoBlocked(p,s,i,selected = null) {
   return Object.entries(s.placements).some(([id,j])=>id!==selected&&i!==j&&(Math.floor(i/p.cols)===Math.floor(j/p.cols)||i%p.cols===j%p.cols));
 }
-// Derived display state only: placement must not destroy pencil notes.
+// A placed person's old notes are removed; this also handles older saved cases.
 export function candidateExclusions(state, cell) {
   const notes=state.notes[cell]||[];
   const crossed=notes.filter(id=>state.placements[id]!==undefined);
@@ -156,13 +156,19 @@ export function applyMove(p,s,mode,i,id) {
     if (p.cells[i].blocked) throw Error('这个格子不能站人。');
     if (mode==='note') {
       const list=next.notes[i]||[];
-      next.notes[i]=list.includes(id)?list.filter(x=>x!==id):[...list,id];
+      next.notes[i]=[...new Set(list.includes(id)?list.filter(x=>x!==id):[...list,id])].sort();
       if (!next.notes[i].length) delete next.notes[i];
     } else {
       const occupant=Object.entries(next.placements).find(([key,j])=>j===i&&key!==id);
       if (occupant) throw Error('这个格子已有其他人物。');
-      if (next.placements[id]===i) delete next.placements[id]; else next.placements[id]=i;
-      // Keep pencil notes intact underneath derived row/column masks.
+      if (next.placements[id]===i) delete next.placements[id];
+      else {
+        next.placements[id]=i;
+        for (const [cell,notes] of Object.entries(next.notes)) {
+          next.notes[cell]=notes.filter(person=>person!==id);
+          if (!next.notes[cell].length) delete next.notes[cell];
+        }
+      }
       next.excluded=next.excluded.filter(j=>j!==i);
     }
   }

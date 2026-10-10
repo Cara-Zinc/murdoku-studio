@@ -16,14 +16,15 @@
   <main>
     <section class="case-heading">
       <div><div class="eyebrow">CASE FILE <span id="case-type">练习案件</span></div><h1 id="case-title">雨夜档案室</h1><p id="case-subtitle">根据线索还原现场，找出与受害者独处的人。</p></div>
-      <div class="case-actions"><span id="save-status" class="save-status" role="status">本机存档</span><button id="export-btn" title="导出包含图片和进度的 JSON 存档">导出存档</button><button id="edit-btn">编辑案件</button></div>
+      <div class="case-actions"><span id="save-status" class="save-status" role="status">本机存档</span><button id="fork-btn" title="复制当前棋盘、候选笔记和人物位置到新案件">复制分支</button><button id="export-btn" title="导出包含图片和进度的 JSON 存档">导出存档</button><button id="edit-btn">编辑案件</button></div>
     </section>
     <div class="workspace">
       <aside class="clue-panel">
-        <div class="clue-heading"><div class="section-label">人物与线索</div><span id="clue-count" class="muted"></span></div>
-        <p class="clue-intro">点击人物选择 · 拖到棋盘放置</p>
-        <div class="people-filter" id="people-filter" hidden><input id="people-search" type="search" placeholder="搜索姓名或编号" aria-label="搜索人物"><label><input id="only-unplaced" type="checkbox"> 仅未放置</label></div>
-        <div id="clues" class="clues"></div>
+        <div class="clue-heading"><div class="section-label">人物与线索</div><span id="clue-count" class="muted"></span><button id="toggle-clues" type="button" aria-controls="clue-content" aria-expanded="true">收起</button></div>
+        <div id="clue-content"><p class="clue-intro">点击人物选择 · 拖到棋盘放置</p>
+          <div class="people-filter" id="people-filter" hidden><input id="people-search" type="search" placeholder="搜索姓名或编号" aria-label="搜索人物"><label><input id="only-unplaced" type="checkbox"> 仅未放置</label></div>
+          <div id="clues" class="clues"></div>
+        </div>
       </aside>
       <section class="game-panel" aria-label="解谜棋盘">
         <div class="board-top"><div><span class="section-label">犯罪现场</span><span id="board-size" class="muted"></span></div><div class="timer-group"><span id="timer">00:00</span><button id="pause-btn" aria-label="暂停计时">Ⅱ</button><button id="fullscreen-btn" aria-label="全屏棋盘">⛶</button></div></div>

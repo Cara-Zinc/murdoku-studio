@@ -15,11 +15,22 @@ test('beside excludes diagonals and neighbors across room boundaries',()=>{
   const p=demoPuzzle();assert.deepEqual(neighbors(p,2),[8,1]);
   assert.equal(ruleHolds(p,p.people[0],7,{type:'beside',value:'桌子'},{},false),false);
 });
-test('placing and moving a person never destroys candidates or explicit exclusions',()=>{
-  const p=demoPuzzle();let s=applyMove(p,blankState(),'note',2,'A');
+test('placing a person clears only their pencil marks and preserves explicit exclusions',()=>{
+  const p=makePuzzle(6,6,6);let s=applyMove(p,blankState(),'note',2,'A');
+  s=applyMove(p,s,'note',2,'B');s=applyMove(p,s,'note',4,'A');
   s=applyMove(p,s,'exclude',3);s=applyMove(p,s,'place',1,'A');
-  assert.equal(autoBlocked(p,s,2),true);assert.deepEqual(s.notes[2],['A']);assert.deepEqual(s.excluded,[3]);
-  s=applyMove(p,s,'place',13,'A');assert.equal(autoBlocked(p,s,2),false);assert.deepEqual(s.notes[2],['A']);
+  assert.equal(autoBlocked(p,s,2),true);assert.deepEqual(s.notes[2],['B']);
+  assert.equal(s.notes[4],undefined);assert.deepEqual(s.excluded,[3]);
+  s=applyMove(p,s,'place',13,'A');assert.equal(autoBlocked(p,s,2),false);
+  assert.deepEqual(s.notes[2],['B']);
+});
+test('pencil labels keep dictionary order regardless of insertion order',()=>{
+  const p=makePuzzle(3,3,28);
+  let state=blankState();
+  for(const id of ['Z','B','AA','A'])state=applyMove(p,state,'note',0,id);
+  assert.deepEqual(state.notes[0],['A','AA','B','Z']);
+  state=applyMove(p,state,'note',0,'AA');
+  assert.deepEqual(state.notes[0],['A','B','Z']);
 });
 test('placement-derived crosses cover exactly the other row and column cells',()=>{
   const p=makePuzzle(3,4,3), empty=blankState();
@@ -146,29 +157,28 @@ test('grid bounds stop at the frame despite aligned marks outside it',()=>{
   for(const [actual,expected] of [[refined.x*width,left],[refined.y*height,top],[refined.w*width,span],[refined.h*height,span]])assert.ok(Math.abs(actual-expected)<1);
 });
 
-test('placed candidates are crossed without eliminating other candidates in the cell',()=>{
+test('placing one candidate leaves other candidates in the cell',()=>{
   const puzzle=makePuzzle(6,6,6),before=blankState();
   before.notes={14:['A'],21:['A','B']};before.excluded=[28];
   const placed=applyMove(puzzle,before,'place',0,'A');
-  assert.deepEqual(candidateExclusions(placed,14),{crossed:['A'],exhausted:true});
-  assert.deepEqual(candidateExclusions(placed,21),{crossed:['A'],exhausted:false});
+  assert.deepEqual(candidateExclusions(placed,14),{crossed:[],exhausted:false});
+  assert.deepEqual(candidateExclusions(placed,21),{crossed:[],exhausted:false});
   assert.equal(autoBlocked(puzzle,placed,14),false); // Outside the placed row/column.
-  assert.deepEqual(placed.notes,before.notes);assert.deepEqual(placed.excluded,[28]);
+  assert.deepEqual(placed.notes,{21:['B']});assert.deepEqual(placed.excluded,[28]);
+  assert.deepEqual(before.notes,{14:['A'],21:['A','B']}); // Undo snapshot is intact.
   const both=applyMove(puzzle,placed,'place',7,'B');
-  assert.equal(candidateExclusions(both,21).exhausted,true);
+  assert.deepEqual(both.notes,{});
   assert.deepEqual(candidateExclusions(both,35),{crossed:[],exhausted:false});
 });
 
-test('undo snapshots and removal restore candidate crosses without clearing manual exclusions',()=>{
+test('undo snapshots retain notes; removal does not recreate erased marks',()=>{
   const puzzle=makePuzzle(6,6,6),before=blankState();before.notes={14:['A'],21:['A','B']};before.excluded=[14];
   const placed=applyMove(puzzle,before,'place',0,'A');
   const moved=applyMove(puzzle,placed,'place',8,'A');
-  assert.equal(candidateExclusions(moved,14).exhausted,true);
-  for(const restored of [before,applyMove(puzzle,moved,'erase',8),applyMove(puzzle,moved,'place',8,'A')]){
-    assert.deepEqual(candidateExclusions(restored,14),{crossed:[],exhausted:false});
-    assert.deepEqual(restored.notes,before.notes);assert.deepEqual(restored.excluded,[14]);
+  assert.deepEqual(before.notes,{14:['A'],21:['A','B']});
+  for(const restored of [placed,moved,applyMove(puzzle,moved,'erase',8),applyMove(puzzle,moved,'place',8,'A')]){
+    assert.deepEqual(restored.notes,{21:['B']});assert.deepEqual(restored.excluded,[14]);
   }
-  const redone=validateState(puzzle,JSON.parse(JSON.stringify(placed)));
-  assert.equal(candidateExclusions(redone,14).exhausted,true);
-  assert.deepEqual(candidateExclusions(redone,21),{crossed:['A'],exhausted:false});
+  const legacy=validateState(puzzle,{...before,placements:{A:0}});
+  assert.deepEqual(candidateExclusions(legacy,14),{crossed:['A'],exhausted:true});
 });
