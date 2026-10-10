@@ -437,7 +437,7 @@ dialog::backdrop { background: #191922a6; backdrop-filter: none; }
 #people-page-fieldset p { font-size: 12px; margin-top: 8px; }
 .person-portrait-editor select { max-width: 220px; }
 
-.cell .notes .candidate-eliminated { color: #666; background: transparent; text-decoration: line-through; text-decoration-color: #111; text-decoration-thickness: 2px; }
+.cell .notes .candidate-eliminated { color: #666; background: #ffffffb3; text-decoration: line-through; text-decoration-color: #111; text-decoration-thickness: 2px; }
 
 /* Board letters scale with cells; portrait artwork stays on the clue cards. */
 .board > .cell { container-type: inline-size; }
