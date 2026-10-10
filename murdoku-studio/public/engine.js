@@ -133,6 +133,12 @@ export function assess(p,s) {
 export function autoBlocked(p,s,i,selected = null) {
   return Object.entries(s.placements).some(([id,j])=>id!==selected&&i!==j&&(Math.floor(i/p.cols)===Math.floor(j/p.cols)||i%p.cols===j%p.cols));
 }
+// Derived display state only: placement must not destroy pencil notes.
+export function candidateExclusions(state, cell) {
+  const notes=state.notes[cell]||[];
+  const crossed=notes.filter(id=>state.placements[id]!==undefined);
+  return {crossed,exhausted:notes.length>0&&crossed.length===notes.length};
+}
 export function applyMove(p,s,mode,i,id) {
   const next = clone(s);
   if (!Number.isInteger(i)||i<0||i>=p.cells.length) return next;

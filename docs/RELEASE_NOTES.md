@@ -2,6 +2,9 @@
 
 ## Unreleased / 未发布
 
+- Placing a person crosses out their pencil candidates elsewhere. Cells with only placed candidates receive a cross; mixed cells retain other candidates. Undo/redo derives these marks from placements without deleting notes or manual exclusions.
+- 放置人物后划除其他格中的同名候选；全部候选均已放置时整格打叉，多候选格保留其他人。撤销与重做同步恢复，原笔记和手动排除独立保留。
+
 - Select the map page independently from one or more roster pages. Portrait crops retain their page ownership, including in standalone JSON saves.
 - Upload separate PNG/JPEG/WebP portraits (up to 8 MiB), crop them, and keep the source image for later adjustments.
 - 地图与人物支持分页识别，可合并多个人物页；手动裁剪会打开对应来源页，来源图随 JSON 存档保存。

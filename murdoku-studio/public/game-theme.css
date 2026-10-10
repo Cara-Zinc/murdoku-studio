@@ -398,3 +398,5 @@ dialog::backdrop { background: #191922a6; backdrop-filter: none; }
 #people-page-options label { display: flex; flex-direction: row; align-items: center; gap: 4px; margin: 0; font-size: 12px; }
 #people-page-fieldset p { font-size: 12px; margin-top: 8px; }
 .person-portrait-editor select { max-width: 220px; }
+
+.cell .notes .candidate-eliminated { color: #666; background: #ffffffb3; text-decoration: line-through; text-decoration-color: #111; text-decoration-thickness: 2px; }
