@@ -24,6 +24,14 @@ test('placing a person clears only their pencil marks and preserves explicit exc
   s=applyMove(p,s,'place',13,'A');assert.equal(autoBlocked(p,s,2),false);
   assert.deepEqual(s.notes[2],['B']);
 });
+test('pencil labels keep dictionary order regardless of insertion order',()=>{
+  const p=makePuzzle(3,3,28);
+  let state=blankState();
+  for(const id of ['Z','B','AA','A'])state=applyMove(p,state,'note',0,id);
+  assert.deepEqual(state.notes[0],['A','AA','B','Z']);
+  state=applyMove(p,state,'note',0,'AA');
+  assert.deepEqual(state.notes[0],['A','B','Z']);
+});
 test('placement-derived crosses cover exactly the other row and column cells',()=>{
   const p=makePuzzle(3,4,3), empty=blankState();
   const notes=applyMove(p,empty,'note',5,'A');

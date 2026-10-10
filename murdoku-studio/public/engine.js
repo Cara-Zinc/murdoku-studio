@@ -156,7 +156,7 @@ export function applyMove(p,s,mode,i,id) {
     if (p.cells[i].blocked) throw Error('这个格子不能站人。');
     if (mode==='note') {
       const list=next.notes[i]||[];
-      next.notes[i]=list.includes(id)?list.filter(x=>x!==id):[...list,id];
+      next.notes[i]=[...new Set(list.includes(id)?list.filter(x=>x!==id):[...list,id])].sort();
       if (!next.notes[i].length) delete next.notes[i];
     } else {
       const occupant=Object.entries(next.placements).find(([key,j])=>j===i&&key!==id);

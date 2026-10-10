@@ -83,14 +83,24 @@ function renderBoard(){
     const room=p().rooms.find(x=>x.id===cell.room), person=occupants[i], button=el('button','cell');
     const automatic=$('auto-mask').checked&&!person&&autoBlocked(p(),s(),i);
     const candidates=candidateExclusions(s(),i),candidateExcluded=!person&&candidates.exhausted;
+    const pencil=s().notes[i]?.length?[...new Set(s().notes[i])].sort():[];
     const excluded=!person&&(s().excluded.includes(i)||automatic||candidateExcluded);button.dataset.cell=i;button.type='button';button.tabIndex=i===currentCell?0:-1;button.setAttribute('role','gridcell');button.setAttribute('aria-rowindex',Math.floor(i/cols)+1);button.setAttribute('aria-colindex',i%cols+1);
-    button.setAttribute('aria-label',`${coord(i)}，${room?.name||'未分区'}${cell.object?'，'+cell.object:''}${cell.blocked?'，不可占用':''}${person?'，'+p().people.find(x=>x.id===person).name:''}${excluded?(automatic?'，同行列自动排除':candidateExcluded?'，候选人物均已放置，自动排除':'，已排除'):''}${!person&&candidates.crossed.length?'，已划除候选 '+candidates.crossed.join('、'):''}`);
+    button.setAttribute('aria-label',`${coord(i)}，${room?.name||'未分区'}${cell.object?'，'+cell.object:''}${cell.blocked?'，不可占用':''}${person?'，'+p().people.find(x=>x.id===person).name:''}${excluded?(automatic?'，同行列自动排除':candidateExcluded?'，候选人物均已放置，自动排除':'，已排除'):''}${!person&&pencil.length?'，候选 '+pencil.join('、'):''}${!person&&candidates.crossed.length?'，已划除候选 '+candidates.crossed.join('、'):''}`);
     button.style.setProperty('--cell-bg',art?'transparent':room?.color||'#f7f8f3');
     button.classList.toggle('current',i===currentCell);button.classList.toggle('blocked',cell.blocked&&!art);button.classList.toggle('excluded',s().excluded.includes(i));button.classList.toggle('highlight',!!s().colors[i]);button.classList.toggle('masked',automatic);button.classList.toggle('candidate-excluded',candidateExcluded);
     button.classList.toggle('room-right',i%cols<cols-1&&cell.room!==cells[i+1].room);button.classList.toggle('room-bottom',i+cols<cells.length&&cell.room!==cells[i+cols].room);
     if(person){button.classList.toggle('error',invalid.has(person));button.classList.toggle('victim',p().people.find(x=>x.id===person).victim);const token=personPortrait(p().people.find(x=>x.id===person),'placed');token.style.setProperty('--person-color',color(person));button.append(token);button.draggable=true;}
     else if(!art&&cell.object){const object=el('span','object');object.append(el('span','object-symbol',SYMBOLS[cell.object]||'◇'),el('span','',cell.object));button.append(object);}
-    if(!person&&!excluded&&$('show-notes').checked&&s().notes[i]?.length){const notes=el('span','notes');for(const id of s().notes[i]){const span=el('span','',id);span.style.setProperty('--person-color',color(id));span.classList.toggle('candidate-eliminated',candidates.crossed.includes(id));if(candidates.crossed.includes(id))span.title=`${id} 已在其他格放置`;notes.append(span);}button.append(notes);}
+    if(!person&&!excluded&&$('show-notes').checked&&pencil.length){
+      const notes=el('span','notes'),slots=Math.max(9,Math.ceil(pencil.length/3)*3);
+      notes.style.setProperty('--note-rows',String(slots/3));notes.setAttribute('aria-hidden','true');
+      for(let slot=0;slot<slots;slot++){
+        const id=pencil[slot],mark=el('span','note-slot',id||'');
+        if(id){mark.classList.toggle('candidate-eliminated',candidates.crossed.includes(id));if(candidates.crossed.includes(id))mark.title=`${id} 已在其他格放置`;}
+        notes.append(mark);
+      }
+      button.append(notes);
+    }
     if(excluded)button.append(exclusionMark());
     fragment.append(button);
   });board.replaceChildren(fragment);

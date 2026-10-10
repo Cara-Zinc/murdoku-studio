@@ -118,7 +118,32 @@ main { max-width: 1640px; padding: 20px 26px 16px; }
 .cell.error { box-shadow: inset 0 0 0 3px #bd4b42; }
 .cell .placed { border: 2px solid #171717; border-radius: 7px; background: #fff; color: #161616; font-family: var(--hand); font-size: clamp(22px, 3.5vw, 40px); box-shadow: 3px 3px 0 #0005; width: 60%; }
 .cell.victim .placed { background: #f2dad7; border-style: solid; color: #501f20; }
-.cell .notes span { color: #222; background: #fffffff2; font-family: var(--hand); font-size: 1.25em; }
+.cell .notes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(var(--note-rows, 3), minmax(0, 1fr));
+  inset: 3%;
+  gap: 0;
+  align-items: stretch;
+  justify-items: stretch;
+  background: transparent;
+  font: 700 clamp(7px, 1.2vw, 16px)/1 var(--hand);
+  pointer-events: none;
+}
+.cell .notes .note-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #222;
+  font: inherit;
+}
 .cell .object { color: #514732; font-size: 12px; font-weight: 700; }
 .object-symbol { color: #57472e; opacity: .8; font-size: 27px; }
 .col-labels, .row-labels { color: #544e5c; font-weight: 700; }
@@ -412,4 +437,4 @@ dialog::backdrop { background: #191922a6; backdrop-filter: none; }
 #people-page-fieldset p { font-size: 12px; margin-top: 8px; }
 .person-portrait-editor select { max-width: 220px; }
 
-.cell .notes .candidate-eliminated { color: #666; background: #ffffffb3; text-decoration: line-through; text-decoration-color: #111; text-decoration-thickness: 2px; }
+.cell .notes .candidate-eliminated { color: #666; background: transparent; text-decoration: line-through; text-decoration-color: #111; text-decoration-thickness: 2px; }
