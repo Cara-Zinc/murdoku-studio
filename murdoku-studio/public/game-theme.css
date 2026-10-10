@@ -365,6 +365,19 @@ dialog::backdrop { background: #191922a6; backdrop-filter: none; }
 #jump-form button { flex-shrink: 0; white-space: nowrap; }
 .person-token .avatar:not(.has-portrait) { background: var(--person-color); }
 .person-token .avatar .portrait-monogram { font: 800 22px/1 var(--hand); text-shadow: none; }
+
+#toggle-clues { padding: 2px 8px; font-size: 12px; white-space: nowrap; }
+.clues-collapsed .clue-heading { justify-content: flex-start; }
+.clues-collapsed #clue-count { display: none; }
+@media (min-width: 1191px) {
+  .workspace.clues-collapsed { grid-template-columns: 160px minmax(0, 1fr) 160px; }
+}
+@media (min-width: 901px) and (max-width: 1190px) {
+  .workspace.clues-collapsed { grid-template-columns: 160px minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+  .case-actions { flex-wrap: wrap; }
+}
 .cell .placed .portrait-monogram { font: inherit; text-shadow: none; }
 .game-panel:fullscreen:has(#map-navigation:not([hidden])) { display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 8px 20px; align-content: start; overflow-y: auto; padding: 20px; }
 .game-panel:fullscreen>.board-top { grid-column: 1 / -1; grid-row: 1; }
