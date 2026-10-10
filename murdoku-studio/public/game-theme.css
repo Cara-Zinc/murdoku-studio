@@ -438,3 +438,11 @@ dialog::backdrop { background: #191922a6; backdrop-filter: none; }
 .person-portrait-editor select { max-width: 220px; }
 
 .cell .notes .candidate-eliminated { color: #666; background: transparent; text-decoration: line-through; text-decoration-color: #111; text-decoration-thickness: 2px; }
+
+/* Board letters scale with cells; portrait artwork stays on the clue cards. */
+.board > .cell { container-type: inline-size; }
+.cell .placed.board-letter { position: absolute; inset: 2%; width: 96%; height: 96%; aspect-ratio: auto; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: #183551; pointer-events: none; }
+.cell .board-letter text { font-family: Arial, Helvetica, sans-serif; font-weight: 900; fill: currentColor; stroke: #fff9e8; stroke-width: 3px; stroke-linejoin: round; paint-order: stroke fill; }
+.cell.victim .placed.board-letter { color: #822c37; background: transparent; }
+.cell .notes { gap: min(3px, 2cqw); font-size: clamp(6px, 24cqw, 18px); }
+.cell .notes span { font-family: Arial, Helvetica, sans-serif; font-size: 1em; font-weight: 600; padding: 0 2px; line-height: 1.2; }

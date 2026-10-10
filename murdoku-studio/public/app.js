@@ -89,7 +89,7 @@ function renderBoard(){
     button.style.setProperty('--cell-bg',art?'transparent':room?.color||'#f7f8f3');
     button.classList.toggle('current',i===currentCell);button.classList.toggle('blocked',cell.blocked&&!art);button.classList.toggle('excluded',s().excluded.includes(i));button.classList.toggle('highlight',!!s().colors[i]);button.classList.toggle('masked',automatic);button.classList.toggle('candidate-excluded',candidateExcluded);
     button.classList.toggle('room-right',i%cols<cols-1&&cell.room!==cells[i+1].room);button.classList.toggle('room-bottom',i+cols<cells.length&&cell.room!==cells[i+cols].room);
-    if(person){button.classList.toggle('error',invalid.has(person));button.classList.toggle('victim',p().people.find(x=>x.id===person).victim);const token=personPortrait(p().people.find(x=>x.id===person),'placed');token.style.setProperty('--person-color',color(person));button.append(token);button.draggable=true;}
+    if(person){button.classList.toggle('error',invalid.has(person));button.classList.toggle('victim',p().people.find(x=>x.id===person).victim);const token=placedLetter(person);button.append(token);button.draggable=true;}
     else if(!art&&cell.object){const object=el('span','object');object.append(el('span','object-symbol',SYMBOLS[cell.object]||'◇'),el('span','',cell.object));button.append(object);}
     if(!person&&!excluded&&$('show-notes').checked&&pencil.length){
       const notes=el('span','notes'),slots=Math.max(9,Math.ceil(pencil.length/3)*3);
@@ -105,6 +105,12 @@ function renderBoard(){
     fragment.append(button);
   });board.replaceChildren(fragment);
   navigation.render(`${workspace.id}:${workspace.book?.page||1}`);syncPan();requestAnimationFrame(drawInk);
+}
+function placedLetter(id){
+  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),text=document.createElementNS(ns,'text');
+  svg.classList.add('placed','board-letter');svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('aria-hidden','true');
+  text.setAttribute('x','50');text.setAttribute('y','50');text.setAttribute('dy','.35em');text.setAttribute('text-anchor','middle');
+  text.setAttribute('font-size',String(id.length===1?100:id.length===2?64:44));text.textContent=id;svg.append(text);return svg;
 }
 function axisLabel(axis,index,b){
   const label=el('span','',axis==='row'?String(index+1):personLabel(index));
