@@ -2,8 +2,9 @@ import {normalizeView,viewBounds,containsCell,localToGlobal,globalToLocal} from 
 import {setupNavigation} from './navigation.js';
 import {makePuzzle,blankState,clone,validatePuzzle,validateState,applyMove,autoBlocked,assess,coverage,personLabel} from './engine.js';
 import {demoPuzzle} from './demo.js';
-import {renderDocument,fileImage,cropImage,detectGrid,suggestPeople,pageText,renderAlignmentGrid} from './pdf.js';
+import {renderDocument,fileImage,cropImage,detectGrid,pageText,renderAlignmentGrid} from './pdf.js';
 import {saveCase,currentCase,getCase,listCases,deleteCase,readSetting,saveSetting} from './storage.js';
+import {collectPeople,portraitPages,portraitSource} from './person-sources.js';
 import {matchPortraits} from './portraits.js';
 import {editPortrait} from './portrait-editor.js';
 import {recognizeRoster,relabelPeople} from './people.js';
@@ -189,7 +190,7 @@ function accuse(){
 }
 async function activate(next){await persist().catch(()=>{});workspace=next;selected=p().people[0].id;currentCell=bounds().row*p().cols+bounds().col;paused=false;panning=false;$('people-search').value='';$('only-unplaced').checked=false;zoom=1;setZoom(1);revision++;cancelSolver();render();scheduleSave();}
 function newWorkspace(puzzle,book=null){return {id:puzzle.id,puzzle,state:blankState(),undo:[],redo:[],book};}
-function openImport(){pending=null;$('import-dialog').classList.remove('aligning');setImportActionBusy(false);$('import-start').hidden=false;$('alignment-step').hidden=true;$('import-status').textContent='';$('file-input').value='';$('import-dialog').showModal();}
+function openImport(){pending=null;$('people-page-fieldset').disabled=false;$('import-page').disabled=false;$('import-dialog').classList.remove('aligning');setImportActionBusy(false);$('import-start').hidden=false;$('alignment-step').hidden=true;$('import-status').textContent='';$('file-input').value='';$('import-dialog').showModal();}
 async function importFile(file){
   if(!file)return;if(file.size>32*1024*1024)return toast('文件超过 32 MiB，请拆分或压缩后导入。');
   $('import-status').textContent='正在读取文件…';
@@ -205,7 +206,7 @@ async function prepareAlignment(){
   requestAnimationFrame(fitAlignmentPreview);
   $('import-title').value=pending.name.replace(/\.[^.]+$/,'')+(pending.page.pages>1?` · 第 ${pending.pageNumber} 页`:'');
   $('import-page').replaceChildren(...Array.from({length:pending.page.pages},(_,i)=>{const option=el('option','',`第 ${i+1} 页`);option.value=i+1;return option;}));$('import-page').value=pending.pageNumber;
-  rect={x:.08,y:.23,w:.84,h:.5};updateAlignment();await detectPending();refreshImportPeople();
+  rect={x:.08,y:.23,w:.84,h:.5};updateAlignment();await detectPending();renderPeoplePageOptions();await refreshImportPeople();
 }
 function fitAlignmentPreview(){
   const image=$('preview-image'), pane=$('alignment-preview-pane'), preview=$('page-preview');
@@ -219,17 +220,48 @@ async function detectPending(){
   try{await new Promise(r=>setTimeout(r,20));const suggestion=await detectGrid(pending.page.image);if(suggestion){rect={x:suggestion.x,y:suggestion.y,w:suggestion.w,h:suggestion.h};$('import-rows').value=suggestion.rows;$('import-cols').value=suggestion.cols;$('import-count').value=Math.min(suggestion.rows,suggestion.cols);$('import-status').textContent=`检测到 ${suggestion.rows} × ${suggestion.cols} 的候选网格。请确认框线准确覆盖主棋盘；可能识别到了原页中的小型笔记网格。`;}else{$('import-status').textContent='未找到可靠的网格。请手动拖动四角框住棋盘，再填写行列数。';}updateAlignment();}catch(error){$('import-status').textContent=error.message;}finally{$('detect-btn').disabled=false;}
 }
 function updateAlignment(){rect.x=Math.max(0,Math.min(.98,rect.x));rect.y=Math.max(0,Math.min(.98,rect.y));rect.w=Math.max(.02,Math.min(1-rect.x,rect.w));rect.h=Math.max(.02,Math.min(1-rect.y,rect.h));const box=$('grid-selection');Object.assign(box.style,{left:`${rect.x*100}%`,top:`${rect.y*100}%`,width:`${rect.w*100}%`,height:`${rect.h*100}%`});renderAlignmentGrid(box,Number($('import-rows').value),Number($('import-cols').value));document.querySelectorAll('[data-rect]').forEach(input=>input.value=(rect[input.dataset.rect]*100).toFixed(2));}
-function refreshImportPeople(){
-  if(!pending)return;
+function renderPeoplePageOptions(){
+  pending.pageCache??=new Map();pending.pageCache.set(pending.pageNumber,pending.page);
+  if(!pending.peoplePagesExplicit)pending.peoplePages=[pending.pageNumber];
+  const options=$('people-page-options');options.replaceChildren();
+  for(let page=1;page<=pending.page.pages;page++){
+    const label=el('label'),input=el('input');input.type='checkbox';input.value=page;input.checked=pending.peoplePages.includes(page);
+    input.onchange=()=>{
+      pending.peoplePagesExplicit=true;
+      pending.peoplePages=[...options.querySelectorAll('input:checked')].map(input=>Number(input.value));
+      refreshImportPeople();
+    };
+    label.append(input,document.createTextNode(`第 ${page} 页${page===pending.pageNumber?'（地图）':''}`));options.append(label);
+  }
+  $('people-page-fieldset').hidden=!pending.isPDF||pending.page.pages<2;
+}
+async function refreshImportPeople(){
+  if(!pending||pending.converting)return;
+  const draft=pending,token=(draft.recognitionToken||0)+1;draft.recognitionToken=token;draft.recognizing=true;
+  const current=()=>pending===draft&&draft.recognitionToken===token&&$('import-dialog').open;
   const valid=id=>Math.max(1,Math.min(64,Math.trunc(Number($(id).value)||9)));
-  const rows=valid('import-rows'), cols=valid('import-cols'), count=valid('import-count');
-  const defaults=makePuzzle(rows,cols,count).people;
-  pending.people=$('extract-people').checked?recognizeRoster(defaults,suggestPeople(pending.page.words||[],rect)):defaults;
-  renderImportPeople();
+  const rows=valid('import-rows'),cols=valid('import-cols'),count=valid('import-count');
+  const extract=$('extract-people').checked,selectedPages=[...(draft.peoplePages||[draft.pageNumber])],grid=clone(rect);
+  setImportActionBusy(true,'正在识别人像页…');$('import-page').disabled=true;
+  try{
+    if(selectedPages.length>64)throw Error('人物来源页最多选择 64 页。');
+    const pages=[];
+    for(const number of selectedPages){
+      let page=draft.pageCache?.get(number);
+      if(!page){if(current())$('import-status').textContent=`正在读取人物来源：第 ${number} 页…`;page=await renderDocument(draft.bytes,number);if(!current())return;draft.pageCache.set(number,page);}
+      pages.push(page);
+    }
+    if(!current())return;
+    const defaults=makePuzzle(rows,cols,count).people;
+    draft.people=extract?recognizeRoster(defaults,collectPeople(pages,draft.pageNumber,grid)):defaults;
+    draft.loadedPeoplePages=pages;draft.recognitionError=false;renderImportPeople();
+    $('import-status').textContent=extract&&pages.length?`已从 ${pages.map(page=>'第 '+page.page+' 页').join('、')} 提取候选名单，请核对姓名、线索和人数。`:'已使用手动人物名单。';
+  }catch(error){if(current()){draft.recognitionError=true;$('import-status').textContent=error.message;}}
+  finally{if(current()){draft.recognizing=false;setImportActionBusy(false);$('apply-import').disabled=!!draft.recognitionError;$('import-page').disabled=false;}}
 }
 function renderImportPeople(){
   const list=$('import-people-list');if(!list||!pending?.people)return;
-  $('import-extracted-text').textContent=pageText(pending.page)||'此页没有可提取的文字。';
+  $('import-extracted-text').textContent=(pending.loadedPeoplePages||[pending.page]).map(page=>`【第 ${page.page} 页】\n${pageText(page)||'此页没有可提取的文字。'}`).join('\n\n');
   list.replaceChildren(...pending.people.map(person=>{
     const card=el('article','import-person'), heading=el('div','import-person-heading');
     heading.append(el('strong','',`${person.id}${person.victim?' \u00b7 \u53d7\u5bb3\u8005':''}`));
@@ -237,7 +269,7 @@ function renderImportPeople(){
     nameInput.oninput=()=>{person.name=nameInput.value;};name.append(nameInput);
     const clue=el('label','','\u6700\u7ec8\u63cf\u8ff0\uff08\u6e38\u620f\u4e2d\u663e\u793a\uff09'), clueInput=el('textarea');clueInput.rows=2;clueInput.value=person.clue||'';clueInput.maxLength=2000;
     clueInput.placeholder='\u8f93\u5165\u6700\u7ec8\u663e\u793a\u5728\u4eba\u7269\u7ebf\u7d22\u5361\u4e0a\u7684\u63cf\u8ff0';clueInput.oninput=()=>{person.clue=clueInput.value;};clue.append(clueInput);
-    heading.append(name);card.append(heading,clue);return card;
+    heading.append(name);card.append(heading,clue);if(person.sourcePage)card.append(el('small','',`来源：第 ${person.sourcePage} 页`));return card;
   }));
 }
 function setImportActionBusy(busy,label='正在转换…'){
@@ -245,36 +277,46 @@ function setImportActionBusy(busy,label='正在转换…'){
   if(busy)button.setAttribute('aria-busy','true');else button.removeAttribute('aria-busy');
 }
 async function applyImport(){
-  if(!pending)return;const rows=Number($('import-rows').value), cols=Number($('import-cols').value), count=Number($('import-count').value);
+  if(!pending||pending.recognizing||pending.recognitionError)return;const rows=Number($('import-rows').value), cols=Number($('import-cols').value), count=Number($('import-count').value);
   if([rows,cols,count].some(n=>!Number.isInteger(n)||n<1||n>64))return toast('行数、列数和人数必须是 1–64 的整数。');
-  setImportActionBusy(true);$('import-page').disabled=true;
+  if(pending.people?.length!==count)await refreshImportPeople();
+  if(!pending||pending.recognitionError)return;
+  const draft=pending;draft.converting=true;const importRect=clone(rect);
+  setImportActionBusy(true);$('import-page').disabled=true;$('people-page-fieldset').disabled=true;
   try{
-    if(pending.isPDF&&Math.max(rows,cols)>=16){
+    if(draft.isPDF&&Math.max(rows,cols)>=16){
       setImportActionBusy(true,'正在生成高清大地图…');
-      pending.page=await renderDocument(pending.bytes,pending.pageNumber,3600);
+      draft.page=await renderDocument(draft.bytes,draft.pageNumber,3600);
     }
-    const puzzle=makePuzzle(rows,cols,count);if(pending.people?.length!==count)refreshImportPeople();puzzle.people=relabelPeople({...puzzle,people:clone(pending.people||puzzle.people)},null).puzzle.people;puzzle.title=$('import-title').value.trim()||'导入案件';puzzle.source=pending.name;puzzle.grid=clone(rect);puzzle.background=await cropImage(pending.page.image,rect);puzzle.extractedText=pageText(pending.page);puzzle.extractedTextVersion=2;
+    if(pending!==draft||!$('import-dialog').open)return;
+    const puzzle=makePuzzle(rows,cols,count);puzzle.people=relabelPeople({...puzzle,people:clone(draft.people||puzzle.people)},null).puzzle.people;puzzle.title=$('import-title').value.trim()||'导入案件';puzzle.source=draft.name;puzzle.grid=importRect;puzzle.background=await cropImage(draft.page.image,importRect);puzzle.extractedText=pageText(draft.page);puzzle.extractedTextVersion=2;
+    puzzle.mapPage=draft.pageNumber;
+    puzzle.sourcePages=(draft.loadedPeoplePages||[]).filter(page=>page.page!==draft.pageNumber).map(page=>({page:page.page,image:page.image,text:pageText(page)}));
     if($('extract-people').checked){
-      $('import-status').textContent='正在按姓名位置匹配头像…';
-      await matchPortraits(pending.page.image,puzzle.people);
+      $('import-status').textContent='正在按来源页和姓名位置匹配头像…';
+      for(const page of draft.loadedPeoplePages||[]){
+        await matchPortraits(page.image,puzzle.people.filter(person=>person.sourcePage===page.page));
+      }
     }
+    if(pending!==draft||!$('import-dialog').open)return;
+    validatePuzzle(puzzle);
     let next;
-    if(pending.existingBook){const book=clone(workspace.book);book.page=pending.pageNumber;next={...workspace,puzzle,state:blankState(),undo:[],redo:[],view:undefined,book};}
-    else {const book=pending.isPDF?{name:pending.name,bytes:pending.bytes,pages:pending.page.pages,page:pending.pageNumber,sheets:{}}:null;next=newWorkspace(puzzle,book);}
-    next.puzzle.originalPage=pending.page.image;await activate(next);$('import-dialog').close();pending=null;toast('棋盘已转换。可开始做笔记；请在「编辑案件」中核对人物并标注规则。');
-  }catch(error){$('import-status').textContent=error.message;toast(`转换失败：${error.message}`);}finally{setImportActionBusy(false);$('import-page').disabled=false;}
+    if(draft.existingBook){const book=clone(workspace.book);book.page=draft.pageNumber;next={...workspace,puzzle,state:blankState(),undo:[],redo:[],view:undefined,book};}
+    else {const book=draft.isPDF?{name:draft.name,bytes:draft.bytes,pages:draft.page.pages,page:draft.pageNumber,sheets:{}}:null;next=newWorkspace(puzzle,book);}
+    next.puzzle.originalPage=draft.page.image;await activate(next);$('import-dialog').close();pending=null;toast('棋盘已转换。可开始做笔记；请在「编辑案件」中核对人物并标注规则。');
+  }catch(error){$('import-status').textContent=error.message;toast(`转换失败：${error.message}`);}finally{draft.converting=false;if(pending===draft||!pending){setImportActionBusy(false);$('import-page').disabled=false;$('people-page-fieldset').disabled=false;}}
 }
 async function changePage(page){
   if(!workspace.book||page<1||page>workspace.book.pages)return;await persist().catch(()=>{});const found=workspace.book.sheets[page];
   if(found){const next=clone(workspace);next.view=found.view;next.book.page=page;Object.assign(next,clone(found));await activate(next);return;}
   toast('正在读取下一页…');try{const rendered=await renderDocument(workspace.book.bytes,page);pending={name:workspace.book.name,bytes:workspace.book.bytes,page:rendered,pageNumber:page,isPDF:true,existingBook:true};$('import-dialog').showModal();await prepareAlignment();}catch(error){toast(error.message);}
 }
-function exportCase(){stashPage();const data={format:'murdoku-studio',version:1,puzzle:clone(p()),state:clone(s()),view:clone(currentView())};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}), url=URL.createObjectURL(blob), anchor=el('a');anchor.href=url;anchor.download=`${p().title.replace(/[^\p{L}\p{N}_-]/gu,'_')}.murdoku.json`;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('已导出当前页的图片、规则和进度。多页 PDF 请逐页导出。');}
+function exportCase(){stashPage();const data={format:'murdoku-studio',version:1,puzzle:clone(p()),state:clone(s()),view:clone(currentView())};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}), url=URL.createObjectURL(blob), anchor=el('a');anchor.href=url;anchor.download=`${p().title.replace(/[^\p{L}\p{N}_-]/gu,'_')}.murdoku.json`;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('已导出当前棋盘、关联人物页、头像和进度。其他棋盘请分别导出。');}
 async function showLibrary(){await persist().catch(()=>{});await renderLibrary();$('library-dialog').showModal();}
 async function renderLibrary(){const list=$('library-list');list.replaceChildren();try{const cases=(await listCases()).sort((a,b)=>b.updated-a.updated);for(const item of cases){const row=el('div','library-row'),info=el('div');info.append(el('strong','',item.title),el('small','',`${item.placed} / ${item.total} 人 · ${new Date(item.updated).toLocaleString('zh-CN')}`));const open=el('button','',item.id===workspace.id?'当前案件':'继续');open.disabled=item.id===workspace.id;open.onclick=async()=>{try{const data=await getCase(item.id);validatePuzzle(data.puzzle);data.state=validateState(data.puzzle,data.state);await activate(data);$('library-dialog').close();}catch(error){toast(error.message);}};const remove=el('button','','删除');remove.disabled=item.id===workspace.id;remove.onclick=()=>message('删除这个存档？',`「${item.title}」将从此浏览器删除。已导出的 JSON 不受影响。`,[{label:'取消'},{label:'删除',action:async()=>{await deleteCase(item.id);renderLibrary();}}]);row.append(info,open,remove);list.append(row);}}catch{list.append(el('p','','本机存储不可用。请使用 JSON 导出备份。'));}}
 
 // Case editor: work on a draft until the entire model validates.
-function openEditor(){edit=clone(p());editState=clone(s());editPerson=0;if(!edit.originalPage&&edit.background)edit.grid={x:0,y:0,w:1,h:1};else if(!edit.grid)edit.grid={x:0,y:0,w:1,h:1};$('edit-title').value=edit.title;$('map-editor').hidden=false;$('people-editor').hidden=true;$('map-tab').classList.add('active');$('people-tab').classList.remove('active');$('editor-status').textContent='';$('save-editor').disabled=false;$('realign-grid').disabled=!edit.originalPage;renderRoomOptions();renderEditorGrid();renderEditorSource();renderPersonEditor();$('editor-dialog').showModal();refreshEditorText();}
+function openEditor(){edit=clone(p());edit.mapPage??=workspace.book?.page||1;editState=clone(s());editPerson=0;if(!edit.originalPage&&edit.background)edit.grid={x:0,y:0,w:1,h:1};else if(!edit.grid)edit.grid={x:0,y:0,w:1,h:1};$('edit-title').value=edit.title;$('map-editor').hidden=false;$('people-editor').hidden=true;$('map-tab').classList.add('active');$('people-tab').classList.remove('active');$('editor-status').textContent='';$('save-editor').disabled=false;$('realign-grid').disabled=!edit.originalPage;renderRoomOptions();renderEditorGrid();renderEditorSource();renderPersonEditor();$('editor-dialog').showModal();refreshEditorText();}
 async function refreshEditorText(){
   if(edit.extractedTextVersion===2||!workspace.book?.bytes)return;
   const caseId=edit.id, page=workspace.book.page;
@@ -282,7 +324,7 @@ async function refreshEditorText(){
     const rendered=await renderDocument(workspace.book.bytes,page);
     if(!edit||edit.id!==caseId||!$('editor-dialog').open)return;
     edit.extractedText=pageText(rendered);edit.extractedTextVersion=2;
-    $('people-extracted-text').textContent=edit.extractedText||'此页没有可提取的文字，请对照右侧原图。';
+    renderPortraitEditor();
   }catch(error){if(edit?.id===caseId&&$('editor-dialog').open)$('editor-status').textContent=`原文重新提取失败：${error.message}`;}
 }
 function renderEditorSource(){
@@ -326,18 +368,52 @@ function renderEditorGrid(){const grid=$('editor-board');grid.style.gridTemplate
 function paint(i){const cell=edit.cells[i];switch($('paint-type').value){case 'room':cell.room=$('paint-room').value;break;case 'object':cell.object=$('paint-object').value.trim();break;case 'blocked':cell.blocked=true;break;case 'open':cell.blocked=false;break;case 'clear':Object.assign(cell,{room:'',object:'',blocked:false});break;}edit.people.forEach(person=>person.verified=false);renderEditorGrid();}
 function renderPersonEditor(){const person=edit.people[editPerson];$('edit-person').replaceChildren(...edit.people.map((x,i)=>{const option=el('option','',`${x.id} \u00b7 ${x.name}`);option.value=i;return option;}));$('edit-person').value=editPerson;$('person-name').value=person.name;$('person-id').value=person.id;$('person-clue').value=person.clue;$('people-extracted-text').textContent=edit.extractedText||'此页没有可提取的文字，请对照右侧原图。';$('person-gender').value=person.gender||'';$('person-victim').checked=person.victim;$('person-verified').checked=person.verified;$('delete-person').disabled=person.victim||edit.people.length<=1;renderPortraitEditor();renderRules();}
 function renderPortraitEditor(){
-  const person=edit.people[editPerson];
+  const person=edit.people[editPerson],source=portraitSource(edit,person),select=$('portrait-source-page');
   $('person-portrait-preview').replaceChildren(personPortrait(person,'clue-portrait',edit));
-  $('edit-portrait').disabled=!edit.originalPage;
+  select.replaceChildren(...portraitPages(edit).map(page=>{const option=el('option','',`PDF / 原图 · 第 ${page.page} 页`);option.value=String(page.page);return option;}));
+  if(person.portraitSource){const option=el('option','','单独上传的图片');option.value='upload';select.append(option);}
+  if(source)select.value=source.key;
+  select.disabled=!select.options.length;$('edit-portrait').disabled=!source;
   $('clear-portrait').disabled=!person.portrait;
-  $('person-portrait-hint').textContent=edit.originalPage?'在原题页面上框选人脸；请核对自动匹配结果。':'导入 PDF 或图片后，可在原题上框选头像。';
+  $('person-portrait-hint').textContent='可从来源页框选人脸，或上传 PNG、JPEG、WebP 图片（最大 8 MiB）。';
+  updatePortraitSourcePreview();
+  $('people-extracted-text').textContent=portraitPages(edit).map(page=>`【第 ${page.page} 页】\n${page.text||'此页没有可提取的文字。'}`).join('\n\n')||'此案件没有可提取的文字。';
+}
+function selectedPortraitSource(){
+  const person=edit.people[editPerson],key=$('portrait-source-page').value;
+  return key==='upload'?{image:person.portraitSource,key}:portraitPages(edit).map(page=>({...page,key:String(page.page)})).find(page=>page.key===key);
+}
+function updatePortraitSourcePreview(){
+  const source=selectedPortraitSource();$('person-source-reference').hidden=!source?.image;
+  $('person-source-image').src=source?.image||'';$('edit-portrait').disabled=!source?.image;
+  $('person-source-label').textContent=source?.key==='upload'?'上传的头像原图':`头像来源 · 第 ${source?.page||1} 页`;
 }
 async function adjustPortrait(){
-  const person=edit.people[editPerson];
+  const draft=edit,person=draft.people[editPerson],source=selectedPortraitSource();if(!source?.image)return;
   try{
-    const result=await editPortrait({source:edit.originalPage,rect:person.portraitRect,name:person.name});
-    if(result){Object.assign(person,result);renderPortraitEditor();}
-  }catch(error){$('editor-status').textContent=error.message;}
+    const result=await editPortrait({source:source.image,rect:portraitSource(draft,person)?.key===source.key?person.portraitRect:undefined,name:person.name});
+    if(result&&edit===draft&&draft.people.includes(person)&&$('editor-dialog').open){
+      Object.assign(person,result);
+      if(source.key!=='upload'){delete person.portraitSource;person.portraitPage=source.page;}
+      renderPortraitEditor();
+    }
+  }catch(error){if(edit===draft)$('editor-status').textContent=error.message;}
+}
+async function uploadPortrait(file){
+  if(!file||!edit)return;
+  const draft=edit,person=draft.people[editPerson];
+  try{
+    if(file.size>8*1024*1024)throw Error('头像图片超过 8 MiB，请缩小后上传。');
+    if(!/^image\/(png|jpeg|webp)$/.test(file.type)&&!(file.type===''&&/\.(png|jpe?g|webp)$/i.test(file.name)))throw Error('请选择 PNG、JPEG 或 WebP 图片。');
+    $('upload-portrait').disabled=true;
+    const page=await fileImage(file);
+    if(edit!==draft||!draft.people.includes(person)||!$('editor-dialog').open)return;
+    const result=await editPortrait({source:page.image,rect:{x:0,y:0,w:1,h:1},name:person.name});
+    if(result&&edit===draft&&draft.people.includes(person)&&$('editor-dialog').open){
+      Object.assign(person,result,{portraitSource:page.image});delete person.portraitPage;renderPortraitEditor();
+    }
+  }catch(error){if(edit===draft)$('editor-status').textContent=error.message;}
+  finally{$('upload-portrait').disabled=false;$('portrait-file').value='';}
 }
 function renderRules(){const person=edit.people[editPerson];$('rule-list').replaceChildren(...person.rules.map((rule,index)=>{let value=rule.value??'';if(['room','notRoom'].includes(rule.type))value=edit.rooms.find(r=>r.id===value)?.name||value;if(['row','col'].includes(rule.type))value=Number(value)+1;if(rule.type==='cells')value=rule.value.map(i=>coord(i,edit)).join(', ');const row=el('div','rule-row',`${RULE_NAMES[rule.type]}${value!==''?'：'+value:''}${rule.gender?'（另一人：'+(rule.gender==='male'?'男':'女')+'）':''}`), remove=el('button','','×');remove.setAttribute('aria-label','删除规则');remove.onclick=()=>{person.rules.splice(index,1);person.verified=false;$('person-verified').checked=false;renderRules();};row.append(remove);return row;}));}
 function addRule(){const type=$('rule-type').value;let value=$('rule-value').value.trim();try{
@@ -437,7 +513,10 @@ $('relabel-people').onclick=()=>{
   renderPersonEditor();$('editor-status').textContent='已按姓名首字母修正编号，位置和笔记随人物保留。点击保存生效。';
 };
 $('edit-portrait').onclick=adjustPortrait;
-$('clear-portrait').onclick=()=>{delete edit.people[editPerson].portrait;renderPortraitEditor();};
+$('portrait-source-page').onchange=updatePortraitSourcePreview;
+$('upload-portrait').onclick=()=>$('portrait-file').click();
+$('portrait-file').onchange=event=>uploadPortrait(event.target.files[0]);
+$('clear-portrait').onclick=()=>{const person=edit.people[editPerson];for(const key of ['portrait','portraitRect','portraitSource','portraitPage'])delete person[key];renderPortraitEditor();};
 $('add-rule').onclick=addRule;$('save-editor').onclick=saveEditor;$('realign-grid').onclick=realignEditorGrid;
 $('rule-type').onchange=()=>{$('rule-gender').hidden=!['otherOn','otherBeside'].includes($('rule-type').value);$('rule-value').disabled=$('rule-type').value==='alone';$('rule-value').placeholder=['row','col'].includes($('rule-type').value)?'从 1 开始，例如 3':$('rule-type').value==='cells'?'例如 A1,B3,C5':'已有区域名称、物品名或人物编号';};
 document.addEventListener('keydown',event=>{

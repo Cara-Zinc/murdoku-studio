@@ -2,6 +2,11 @@
 
 ## Unreleased / 未发布
 
+- Select the map page independently from one or more roster pages. Portrait crops retain their page ownership, including in standalone JSON saves.
+- Upload separate PNG/JPEG/WebP portraits (up to 8 MiB), crop them, and keep the source image for later adjustments.
+- 地图与人物支持分页识别，可合并多个人物页；手动裁剪会打开对应来源页，来源图随 JSON 存档保存。
+- 支持单独上传 PNG/JPEG/WebP 头像（最大 8 MiB）、取消或调整裁剪，并保留上传原图。
+
 - Fix dense-map grid detection: fit fractional spacing, verify all four borders, and refine alignment against internal lines at source resolution.
 - Draw import/editor guide lines without repeated raster tiles; explicitly size board rows and columns.
 - Use **Edit case → Re-detect alignment** to repair the crop of an existing case with matching dimensions. Placements and notes are preserved; saving an edit clears undo history as before. Existing crops are not changed automatically.

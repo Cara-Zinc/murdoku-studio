@@ -33,10 +33,21 @@ export function validatePuzzle(p) {
     if (!cell || typeof cell.blocked !== 'boolean' || typeof cell.object !== 'string' || (cell.room && !rooms.has(cell.room))) throw Error('格子的区域或物品无效。');
   }
   for (const image of [p.background,p.originalPage]) if (image && (typeof image !== 'string' || !/^data:image\/(png|jpeg|webp);base64,/.test(image))) throw Error('背景必须是嵌入的 PNG、JPEG 或 WebP 图片。');
+  const embeddedImage = image => typeof image === 'string' && /^data:image\/(png|jpeg|webp);base64,/.test(image);
+  const pageNumber = value => Number.isInteger(value) && value >= 1 && value <= 10000;
+  if (p.mapPage !== undefined && !pageNumber(p.mapPage)) throw Error('地图页码无效。');
+  if (p.sourcePages !== undefined) {
+    if (!Array.isArray(p.sourcePages) || p.sourcePages.length > 64 || new Set(p.sourcePages.map(page => page?.page)).size !== p.sourcePages.length) throw Error('人物来源页必须唯一，最多 64 页。');
+    for (const page of p.sourcePages) if (!page || !pageNumber(page.page) || !embeddedImage(page.image) || typeof page.text !== 'string') throw Error('人物来源页必须包含有效页码、嵌入图片和文本。');
+  }
   if (p.extractedText !== undefined && typeof p.extractedText !== 'string') throw Error('提取的页面文字无效。');
   for (const person of p.people) {
     if (typeof person.id !== 'string' || !/^[A-Z]{1,3}$/.test(person.id) || typeof person.name !== 'string' || typeof person.clue !== 'string' || !Array.isArray(person.rules) || typeof person.verified !== 'boolean' || typeof person.victim !== 'boolean') throw Error('人物数据无效。');
     if (person.portrait !== undefined && (typeof person.portrait !== 'string' || !/^data:image\/(png|jpeg|webp);base64,/.test(person.portrait))) throw Error('人物头像必须是嵌入的 PNG、JPEG 或 WebP 图片。');
+    if (person.portraitSource !== undefined && !embeddedImage(person.portraitSource)) throw Error('上传头像的原图必须是嵌入图片。');
+    for (const field of ['sourcePage', 'portraitPage']) if (person[field] !== undefined) {
+      if (!pageNumber(person[field]) || (person[field] !== (p.mapPage || 1) && !(p.sourcePages || []).some(page => page.page === person[field]))) throw Error('人物引用了不存在的来源页。');
+    }
     for (const rect of [person.portraitRect, person.nameRect]) {
       if (rect !== undefined && (!rect || !['x','y','w','h'].every(key => Number.isFinite(rect[key])) || rect.x < 0 || rect.y < 0 || rect.w <= 0 || rect.h <= 0 || rect.x + rect.w > 1.000001 || rect.y + rect.h > 1.000001)) throw Error('人物图像框必须在原页范围内。');
     }

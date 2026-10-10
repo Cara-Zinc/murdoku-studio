@@ -16,7 +16,8 @@ An independent fan project, not affiliated with Murdoku. The included practice c
 - Explore large maps through a 6×6, 8×8, 10×10, or 12×12 viewport with a draggable mini-map, global coordinates, and per-page view recovery.
 - Review and edit names and clues before import; compare the original page while editing, and recalibrate the board crop later.
 - Detect a candidate grid and adjust it by dragging, resizing, or entering exact coordinates.
-- Match person IDs to name initials; find nearby portrait frames and crop portraits from the source page. Correct portrait crops manually.
+- Choose a map page and one or more separate roster pages; merge names, clues, and portraits with IDs based on initials.
+- Match or manually crop portraits from their own source pages, or upload a separate PNG/JPEG/WebP portrait.
 - Place or drag people onto the board. Show automatic black crosses across occupied rows and columns, with adjustable thickness.
 - Record candidates, exclusions, cell colors, freehand marks, completed clues, and case notes.
 - Undo/redo, zoom, fullscreen, timer, and pause controls.
@@ -83,8 +84,8 @@ To use a different port, pass `--port 8001` and open the matching URL. Browser s
 
 1. Click **导入谜题** (Import puzzle) and choose a PDF or image. Each file can be up to 32 MiB; PDFs can have up to 300 pages.
 2. Select a page. Confirm that the selection covers the main board, then correct the row, column, and person counts.
-3. Convert the page. Review extracted names, initials, clues, and portraits before solving.
-4. To correct a portrait, open **编辑案件 → 人物与规则 → 调整头像框** (Edit case → People and rules → Adjust portrait). Move or resize the frame, click **应用头像** (Apply portrait), then **保存案件** (Save case).
+3. Under **人物与头像来源页** (People and portrait source pages), select every roster page. These may differ from the map page. Review the names and clues, then convert.
+4. Open **编辑案件 → 人物与规则** (Edit case → People and rules). Choose a portrait source page and **调整头像框** (Adjust portrait), or use **上传头像** (Upload portrait; PNG/JPEG/WebP, up to 8 MiB). Adjust the crop, click **应用头像** (Apply portrait), then **保存案件** (Save case).
 5. Select a person and click a cell, or drag their card onto it. Use the other tools to record deductions. Saving happens automatically; use **导出存档** (Export save) for a backup.
 
 For rule-aware checking and hints, first define rooms, objects, and each person's rules in the case editor. Mark a person's clues as fully configured only after reviewing them. You can solve manually without configuring rules.
@@ -104,7 +105,7 @@ Placements, candidates, and ink remain attached to global coordinates. The view 
 - Text extraction, grid detection, and portrait matching produce suggestions. For **Preppers**, manually align the **9×9** main board; the current grid detector can choose the wrong region.
 - Portrait matching targets rectangular frames above extractable name labels. Scans, unframed artwork, and other layouts may require manual cropping. English OCR is optional for image-only PDFs; there is no automatic gender inference.
 - Natural-language clues, room boundaries, and furniture are not automatically converted into verified rules. Hints and accusations use the rules you configured, not an official answer database. Search limits can prevent a conclusive result.
-- JSON exports contain the current page and its progress, not the entire PDF book. Export each page separately. Editing a case clears its undo history.
+- JSON exports include the current board, linked roster pages, uploaded portrait sources, and progress, not the entire PDF book. Export other boards separately. Editing a case clears its undo history.
 - The magnifier applies to the playing board. The room/object editor still shows the whole board for annotation.
 - Cases without a designated victim can be saved and solved manually, but murder completion and solver hints remain unavailable. Large-map support does not implement a contest-specific treasure-chest objective.
 - This is a local Web UI, not a hosted service. PDF import needs the Python backend; GitHub Pages alone cannot run the complete app. Feature parity with the official online game has not been established.

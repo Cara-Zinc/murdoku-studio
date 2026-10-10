@@ -16,7 +16,7 @@ export function recognizeRoster(defaults, suggestions) {
     if (index < 0) index = people.findIndex((person, i) => !assigned.has(i) && !initials.has(person.id) && !person.victim);
     if (index < 0) continue;
     Object.assign(people[index], {name: suggestion.name, clue: suggestion.clue});
-    for (const key of ['nameRect', 'portraitRect', 'portrait']) {
+    for (const key of ['nameRect', 'portraitRect', 'portrait', 'sourcePage']) {
       if (suggestion[key] !== undefined) people[index][key] = clone(suggestion[key]);
     }
     assigned.add(index);
