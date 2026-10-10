@@ -2,6 +2,9 @@
 
 ## Unreleased / 未发布
 
+- Use large outlined letters for confirmed board placements and small letters for candidates. The mini-map also uses letters; portraits remain on clue cards and in saved cases.
+- 棋盘确认放置改用接近整格的粗体描边字母，候选用小字母，导航小地图同步用字母标记。线索卡和存档保留头像。
+
 - Placing a person crosses out their pencil candidates elsewhere. Cells with only placed candidates receive a cross; mixed cells retain other candidates. Undo/redo derives these marks from placements without deleting notes or manual exclusions.
 - 放置人物后划除其他格中的同名候选；全部候选均已放置时整格打叉，多候选格保留其他人。撤销与重做同步恢复，原笔记和手动排除独立保留。
 

@@ -85,14 +85,19 @@ export function setupNavigation({puzzle, progress, view, update, selected, coord
     ctx.strokeStyle = '#19192235'; ctx.lineWidth = .5;
     for (let col = 0; col <= p.cols; col++) {ctx.beginPath(); ctx.moveTo(col * cw, 0); ctx.lineTo(col * cw, canvas.height); ctx.stroke();}
     for (let row = 0; row <= p.rows; row++) {ctx.beginPath(); ctx.moveTo(0, row * ch); ctx.lineTo(canvas.width, row * ch); ctx.stroke();}
-    for (const [id, index] of Object.entries(progress().placements)) {
-      ctx.fillStyle = id === selected() ? '#ffc830' : '#191922';
-      ctx.beginPath(); ctx.arc((index % p.cols + .5) * cw, (Math.floor(index / p.cols) + .5) * ch, Math.max(2, Math.min(cw, ch) * .32), 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = 'white'; ctx.lineWidth = 1; ctx.stroke();
-    }
     ctx.fillStyle = '#4d8ac720'; ctx.fillRect(b.col * cw, b.row * ch, b.cols * cw, b.rows * ch);
     ctx.strokeStyle = '#fff'; ctx.lineWidth = 5; ctx.strokeRect(b.col * cw + 2, b.row * ch + 2, b.cols * cw - 4, b.rows * ch - 4);
     ctx.strokeStyle = '#2575be'; ctx.lineWidth = 2.5; ctx.strokeRect(b.col * cw + 2, b.row * ch + 2, b.cols * cw - 4, b.rows * ch - 4);
+    // Draw letters after the viewport overlay so markers remain legible.
+    ctx.font = `900 ${Math.min(cw, ch) * .86}px Arial, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    for (const [id, index] of Object.entries(progress().placements)) {
+      const x = (index % p.cols + .5) * cw, y = (Math.floor(index / p.cols) + .5) * ch;
+      ctx.strokeStyle = '#fff9e8'; ctx.lineWidth = Math.max(1, Math.min(cw, ch) * .12);
+      ctx.strokeText(id, x, y, cw * .9);
+      ctx.fillStyle = id === selected() ? '#9a4a00' : '#183551';
+      ctx.fillText(id, x, y, cw * .9);
+    }
     canvas.setAttribute('aria-label',`全图导航，${$('view-range').textContent}。点击或拖动观察框，方向键移动。`);
   }
   return {render, locate};

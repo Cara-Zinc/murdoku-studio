@@ -2,7 +2,7 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-Turn PDF logic puzzles into an interactive Murdoku board. Import a page, align its grid, and solve with portrait tokens, candidate notes, and automatic row/column exclusions.
+Turn PDF logic puzzles into an interactive Murdoku board. Import a page, align its grid, and solve with large letter markers, small candidate letters, and automatic row/column exclusions.
 
 **v1.1.0 · Web UI edition.** Run a small local Python server and use the app in your browser. The current interface is in Simplified Chinese; the documentation is available in English and Chinese. This release provides source code, with no desktop or mobile application package.
 
