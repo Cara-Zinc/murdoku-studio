@@ -4,6 +4,9 @@ export function nameInitial(name) {
   return name.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').match(/^[a-z]/i)?.[0].toUpperCase() || '';
 }
 
+// Generated bilingual placeholders are labels, not names to infer initials from.
+const personInitial = person => ['Person','Victim','人物','受害者'].some(label=>person.name===`${person.id} · ${label}`) ? '' : nameInitial(person.name);
+
 // Match names to their letter slots before filling unmatched slots. PDF text order
 // is unrelated to roster order; in particular, V may be extracted first.
 export function recognizeRoster(defaults, suggestions) {
@@ -28,14 +31,14 @@ export function recognizeRoster(defaults, suggestions) {
 // their placements, notes, or relational rules. Non-Latin labels stay unchanged.
 export function relabelPeople(puzzle, state, inferVictim = false) {
   const next = clone(puzzle), progress = state ? clone(state) : null;
-  const victimNames = next.people.filter(person => nameInitial(person.name) === 'V');
+  const victimNames = next.people.filter(person => personInitial(person) === 'V');
   if (inferVictim && victimNames.length === 1) {
     next.people.forEach(person => { person.victim = person === victimNames[0]; });
   }
-  const preferred = next.people.map(person => nameInitial(person.name) || person.id);
+  const preferred = next.people.map(person => personInitial(person) || person.id);
   const reserved = new Set(preferred), used = new Set(), mapping = {};
   // Actual names have priority over unnamed slots when their initials collide.
-  const order = next.people.map((_, i) => i).sort((a, b) => Number(!!nameInitial(next.people[b].name)) - Number(!!nameInitial(next.people[a].name)));
+  const order = next.people.map((_, i) => i).sort((a, b) => Number(!!personInitial(next.people[b])) - Number(!!personInitial(next.people[a])));
   for (const index of order) {
     const person = next.people[index], initial = preferred[index];
     let id = initial, suffix = 0;

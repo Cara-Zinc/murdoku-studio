@@ -137,6 +137,17 @@ class HandlerTests(unittest.TestCase):
         status, _ = self.request("GET", "/server.py")
         self.assertEqual(status, 404)
 
+    def test_pattern_grouping_endpoint_passes_validated_input_and_rejects_cross_origin(self):
+        with patch('server.group_pdf', return_value={'groups': [{'cells': [0, 1]}], 'unmatched': [2, 3]}) as grouping:
+            status, data = self.request('POST', '/api/patterns?page=2&rows=2&cols=2&grid=%7B%22x%22%3A0%2C%22y%22%3A0%2C%22w%22%3A1%2C%22h%22%3A1%7D', make_pdf())
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(data)['groups'][0]['cells'], [0, 1])
+            self.assertEqual(grouping.call_args.args[1:4], (2, 2, 2))
+        status, _ = self.request('POST', '/api/patterns', make_pdf(), 'https://example.com')
+        self.assertEqual(status, 403)
+        status, _ = self.request('POST', '/api/patterns?rows=2&cols=2&grid=not-json', make_pdf())
+        self.assertEqual(status, 400)
+
 
 if __name__ == "__main__":
     unittest.main()

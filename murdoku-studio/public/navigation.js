@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {normalizeView, viewBounds, centerView, parseCoordinate} from './viewport.js';
 
 // Mini-map input changes the camera only; all game actions remain in app.js.
@@ -22,13 +23,13 @@ export function setupNavigation({puzzle, progress, view, update, selected, coord
   };
   $('locate-person').onclick = () => {
     const index = progress().placements[selected()];
-    if (index === undefined) return toast('这名人物尚未放置。');
+    if (index === undefined) return toast(t('这名人物尚未放置。'));
     locate(index);
   };
   $('view-back').onclick = () => {if (history.length) update(history.pop());};
   $('jump-form').onsubmit = event => {
     event.preventDefault(); const index = parseCoordinate(puzzle(), $('jump-coordinate').value);
-    if (index === null) return toast('请输入棋盘内的坐标，例如 I9。');
+    if (index === null) return toast(t('请输入棋盘内的坐标，例如 I9。'));
     locate(index);
   };
   for (const button of document.querySelectorAll('[data-pan]')) button.onclick = () => {
@@ -64,7 +65,7 @@ export function setupNavigation({puzzle, progress, view, update, selected, coord
     const p = puzzle(), v = normalizeView(p, view()), b = viewBounds(p, v);
     if (key !== caseKey) {caseKey = key; history = []; drag = null;}
     $('view-mode').value = v.mode; $('view-size').value = v.size;
-    $('view-range').textContent = `${v.mode === 'detail' ? '局部' : '全图'} · ${coord(b.row * p.cols + b.col)}–${coord((b.row + b.rows - 1) * p.cols + b.col + b.cols - 1)}`;
+    $('view-range').textContent = `${v.mode === 'detail' ? t('局部') : t('全图')} · ${coord(b.row * p.cols + b.col)}–${coord((b.row + b.rows - 1) * p.cols + b.col + b.cols - 1)}`;
     $('view-back').disabled = !history.length;
     $('locate-person').disabled = progress().placements[selected()] === undefined;
     $('map-navigation').hidden = Math.max(p.rows, p.cols) <= 12 && v.mode === 'overview';
@@ -98,7 +99,7 @@ export function setupNavigation({puzzle, progress, view, update, selected, coord
       ctx.fillStyle = id === selected() ? '#9a4a00' : '#183551';
       ctx.fillText(id, x, y, cw * .9);
     }
-    canvas.setAttribute('aria-label',`全图导航，${$('view-range').textContent}。点击或拖动观察框，方向键移动。`);
+    canvas.setAttribute('aria-label',t`全图导航，${$('view-range').textContent}。点击或拖动观察框，方向键移动。`);
   }
   return {render, locate};
 }

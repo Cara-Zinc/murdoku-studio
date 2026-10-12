@@ -1,8 +1,9 @@
+import {t,serviceError} from './i18n.js';
 export async function renderDocument(bytes, page = 1, scale = 1800) {
   const response = await fetch(`/api/pdf?page=${page}&scale=${scale}`, {method:'POST', headers:{'Content-Type':'application/pdf'}, body:bytes});
   if (!response.ok) {
-    const error = await response.json().catch(()=>({error:'PDF 服务不可用，请用 python3 server.py 启动本地工具。'}));
-    throw Error(error.error || 'PDF 转换失败');
+    const error = await response.json().catch(()=>({error:t('PDF 服务不可用，请用 python3 server.py 启动本地工具。')}));
+    throw Error(serviceError(error.error) || t('PDF 转换失败'));
   }
   return response.json();
 }
@@ -10,7 +11,7 @@ export function pageText(page) {
   return typeof page?.text === 'string' && page.text.trim() ? page.text : (page?.words || []).map(word=>word.text).join(' ');
 }
 export function loadImage(src) {
-  return new Promise((resolve,reject)=>{const img = new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('图片无法读取'));img.src=src;});
+  return new Promise((resolve,reject)=>{const img = new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error(t('图片无法读取')));img.src=src;});
 }
 export async function fileImage(file) {
   const url=URL.createObjectURL(file);

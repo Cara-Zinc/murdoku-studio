@@ -25,3 +25,9 @@ The practice case, fixture PDF, and six-character portrait atlas were created fo
 Python, Poppler, optional Tesseract, Node.js, and browsers are installed separately and are not distributed in this source tree. Their respective licenses continue to apply to those tools. The font license above applies to the font, not to the entire application.
 
 Python、Poppler、可选的 Tesseract、Node.js 和浏览器由用户单独安装，不随源码分发。各工具遵循其自身许可。上述字体许可仅适用于字体，不代表整个应用的许可。
+
+## Desktop preview dependencies / 桌面预览依赖
+
+Desktop distributions bundle Python, pywebview, PDFium / pypdfium2, pdfplumber / pdfminer.six, Pillow and their transitive dependencies. The build collects installed packages' original license and notice files under `desktop/licenses` inside the application resources, and lists their exact versions in `desktop/Desktop-dependencies.txt`. Poppler and Tesseract are not included in desktop builds. The native WebView comes from the operating system; Windows requires Microsoft's WebView2 Runtime.
+
+桌面产物内置 Python、pywebview、PDFium / pypdfium2、pdfplumber / pdfminer.six、Pillow 与相关依赖。构建会将已安装依赖的原始许可与版权文件收集到应用资源的 `desktop/licenses`，并在 `desktop/Desktop-dependencies.txt` 记录实际版本。桌面构建不包含 Poppler 或 Tesseract。原生 WebView 来自系统；Windows 需要微软 WebView2 Runtime。

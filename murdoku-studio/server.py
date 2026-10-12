@@ -1,9 +1,11 @@
-"""Local PDF renderer. Python standard library + Poppler; no package install needed."""
+"""Local PDF renderer; optional pdfplumber adds vector pattern grouping."""
 import argparse
 import base64
 import csv
 import io
 import json
+import importlib.util
+import os
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import re
@@ -14,13 +16,18 @@ import threading
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, HTTPRedirectHandler, build_opener
 import xml.etree.ElementTree as ET
+from patterns import group_pdf
 
 ROOT = Path(__file__).parent / "public"
 MAX_BYTES = 32 * 1024 * 1024
 RENDER_SLOTS = threading.BoundedSemaphore(2)
+PDF_BACKEND = os.environ.get("MURDOKU_PDF_BACKEND", "poppler")
 
 
 def render_pdf(data, page=1, scale=1800):
+    if PDF_BACKEND == "pdfium":
+        from pdf_backend import render_pdfium
+        return render_pdfium(data, page, scale)
     if scale not in (1800, 3600):
         raise ValueError("渲染尺寸必须为 1800 或 3600。")
     if not data.startswith(b"%PDF-"):
@@ -110,7 +117,9 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/api/health":
-            return self.reply({"pdf": all(shutil.which(c) for c in ["pdfinfo", "pdftoppm", "pdftotext"]), "local": True})
+            available = (all(importlib.util.find_spec(name) is not None for name in ("pypdfium2", "pdfplumber"))
+                         if PDF_BACKEND == "pdfium" else all(shutil.which(c) for c in ["pdfinfo", "pdftoppm", "pdftotext"]))
+            return self.reply({"pdf": available, "local": True, "backend": PDF_BACKEND})
         if parsed.path == "/api/fetch":
             if not self.same_origin():
                 return self.reply({"error": "来源不受支持。"}, 403)
@@ -136,7 +145,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
-        if parsed.path != "/api/pdf":
+        if parsed.path not in ("/api/pdf", "/api/patterns"):
             return self.reply({"error": "接口不存在。"}, 404)
         if not self.same_origin():
             return self.reply({"error": "来源不受支持。"}, 403)
@@ -150,7 +159,13 @@ class Handler(SimpleHTTPRequestHandler):
             if not RENDER_SLOTS.acquire(blocking=False):
                 return self.reply({"error": "正在处理其他 PDF，请稍后重试。"}, 429)
             try:
-                self.reply(render_pdf(data, page, scale))
+                if parsed.path == "/api/patterns":
+                    query = parse_qs(parsed.query)
+                    grid = json.loads(query.get("grid", ["null"])[0])
+                    self.reply(group_pdf(data, page, int(query.get("rows", ["0"])[0]),
+                                         int(query.get("cols", ["0"])[0]), grid))
+                else:
+                    self.reply(render_pdf(data, page, scale))
             finally:
                 RENDER_SLOTS.release()
         except (ValueError, ET.ParseError) as error:

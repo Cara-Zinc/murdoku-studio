@@ -1,0 +1,36 @@
+Murdoku Studio — Desktop preview / 桌面预览版
+
+Mac: Move Murdoku Studio.app to Applications and double-click it.
+Windows: Unzip the entire folder and double-click Murdoku Studio.exe.
+Keep the _internal folder next to the Windows executable.
+
+Mac：把 Murdoku Studio.app 拖到「应用程序」，双击打开。
+Windows：完整解压文件夹，双击 Murdoku Studio.exe。
+不要删除或单独移动 Windows 程序旁的 _internal 文件夹。
+
+No Python, Node.js, WSL or Poppler installation is needed.
+Windows requires Microsoft WebView2 Runtime. Windows 11 normally includes it.
+If it is missing: https://developer.microsoft.com/en-us/microsoft-edge/webview2/
+无需安装 Python、Node.js、WSL 或 Poppler。
+Windows 需要微软 WebView2 Runtime；Windows 11 通常已内置。
+
+This is a preview without developer signing or macOS notarization.
+macOS may require approval in System Settings > Privacy & Security.
+Windows may show SmartScreen. Only open builds from a source you trust.
+预览版未做开发者签名或 macOS 公证，系统可能提示确认来源。
+
+Cases are saved on this computer. Export JSON to back up or move them.
+Browser saves and desktop saves are separate; use JSON to transfer.
+Closing and reopening the app preserves progress. If port 18947 is busy,
+close the other Studio window and try again.
+案件保存在本机。请用「导出存档」备份，也可在浏览器与桌面版之间转移。
+关闭重开会保留进度；若端口 18947 被占用，请关闭旧 Studio 窗口后重试。
+
+Scanned PDFs can render, but this build does not include OCR.
+Review extracted names, clues, grids and suggested object groups.
+扫描 PDF 可以渲染，但当前包不内置 OCR。导入结果和分组建议仍需核对。
+
+Independent fan tool, not an official Murdoku product.
+独立爱好者工具，非 Murdoku 官方产品。
+Project: https://github.com/Cara-Zinc/murdoku-studio
+Instructions: https://github.com/Cara-Zinc/murdoku-studio/blob/main/docs/DESKTOP.md

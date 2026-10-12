@@ -1,0 +1,6 @@
+# Desktop build dependencies; the resulting app includes these packages.
+pywebview>=6.1,<7
+pyinstaller>=6.16,<7
+pdfplumber>=0.11.9,<0.12
+pypdfium2>=4.30,<6
+Pillow>=11,<13

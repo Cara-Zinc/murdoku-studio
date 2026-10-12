@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {loadImage, cropImage} from './pdf.js';
 import {clampPortraitRect} from './portraits.js';
 
@@ -7,7 +8,7 @@ export async function editPortrait({source, rect, name}) {
   const dialog = $('portrait-dialog'), selection = $('portrait-selection');
   const initial = clampPortraitRect(rect || {x: .05, y: .15, w: .12, h: .12 * image.width / image.height});
   let current = {...initial}, drag = null, result = null;
-  $('portrait-title').textContent = `调整头像 · ${name}`;
+  $('portrait-title').textContent = t`调整头像 · ${name}`;
   $('portrait-page-image').src = source;
   $('portrait-status').textContent = '';
   $('apply-portrait').disabled = false;

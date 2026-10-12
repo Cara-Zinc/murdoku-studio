@@ -4,9 +4,9 @@
 
 Turn PDF logic puzzles into an interactive Murdoku board. Import a page, align its grid, and solve with large letter markers, small candidate letters, and automatic row/column exclusions.
 
-**v1.1.0 · Web UI edition.** Run a small local Python server and use the app in your browser. The current interface is in Simplified Chinese; the documentation is available in English and Chinese. This release provides source code, with no desktop or mobile application package.
+**v1.1.0 · Web UI and desktop preview builds.** Run a small local Python server and use the app in your browser, or build a native desktop window with its PDF engine included. The interface and documentation are available in English and Simplified Chinese. Switch languages in the top navigation; your choice is remembered. See [desktop preview instructions](docs/DESKTOP.md) for Windows / Mac builds; public desktop downloads are not yet published. There is no mobile app.
 
-![Murdoku Studio Web UI showing the original practice puzzle](docs/images/web-ui.png)
+![Murdoku Studio Web UI showing the original practice puzzle](docs/images/web-ui-en.png)
 
 An independent fan project, not affiliated with Murdoku. The included practice case and character illustrations are original. Official puzzle PDFs are not bundled.
 
@@ -20,6 +20,7 @@ An independent fan project, not affiliated with Murdoku. The included practice c
 - Match or manually crop portraits from their own source pages, or upload a separate PNG/JPEG/WebP portrait.
 - Place or drag people onto the board. Show automatic black crosses across occupied rows and columns, with adjustable thickness.
 - Record candidates, exclusions, cell colors, freehand marks, completed clues, and case notes.
+- Switch between English and Simplified Chinese, with a remembered language preference.
 - Undo/redo, zoom, fullscreen, timer, and pause controls.
 - Edit rooms, objects, blocked cells, people, and structured rules. Check conflicts, request a unique-solution hint, and identify a suspect using verified rules.
 - Save cases and per-page progress in the browser. Export and restore the current page as JSON, including portraits and source artwork.
@@ -39,7 +40,7 @@ Download **Code → Download ZIP** from the repository and extract it, or clone 
 | A modern browser with JavaScript and IndexedDB enabled | Web UI and local saves |
 | Node.js 20+ with npm, optional | Development checks and tests only |
 
-There are no pip or npm runtime dependencies and no frontend build step.
+Basic PDF import needs no pip or npm package, and there is no frontend build step. For better pattern grouping in native PDFs, optionally run `python3 -m pip install -r murdoku-studio/requirements.txt` before starting the server. Without this package, grouping uses the rendered cell images.
 
 **Ubuntu / Debian**
 
@@ -82,23 +83,31 @@ To use a different port, pass `--port 8001` and open the matching URL. Browser s
 
 ## First puzzle
 
-1. Click **导入谜题** (Import puzzle) and choose a PDF or image. Each file can be up to 32 MiB; PDFs can have up to 300 pages.
+Language switching updates labels, help, messages, and the practice case display without changing rules or progress. Imported names, clues, artwork, and your notes retain their original text.
+
+1. Click **Import puzzle** and choose a PDF or image. Each file can be up to 32 MiB; PDFs can have up to 300 pages.
 2. Select a page. Confirm that the selection covers the main board, then correct the row, column, and person counts.
-3. Under **人物与头像来源页** (People and portrait source pages), select every roster page. These may differ from the map page. Review the names and clues, then convert.
-4. Open **编辑案件 → 人物与规则** (Edit case → People and rules). Choose a portrait source page and **调整头像框** (Adjust portrait), or use **上传头像** (Upload portrait; PNG/JPEG/WebP, up to 8 MiB). Adjust the crop, click **应用头像** (Apply portrait), then **保存案件** (Save case).
-5. Select a person and click a cell, or drag their card onto it. Use the other tools to record deductions. Saving happens automatically; use **导出存档** (Export save) for a backup.
+3. Under **People and portrait source pages**, select every roster page. These may differ from the map page. Review the names and clues, then convert.
+4. Open **Edit case → People & rules**. Choose a portrait source page and **Adjust portrait crop**, or use **Upload portrait** (PNG/JPEG/WebP, up to 8 MiB). Adjust the crop, click **Apply portrait**, then **Save case**.
+5. Select a person and click a cell, or drag their card onto it. Use the other tools to record deductions. Saving happens automatically; use **Export save** for a backup.
 
 For rule-aware checking and hints, first define rooms, objects, and each person's rules in the case editor. Mark a person's clues as fully configured only after reviewing them. You can solve manually without configuring rules.
 
+## Pattern groups
+
+In **Edit case → Pattern groups**, organize similar drawings, name each object and choose **Floor**, **Can be occupied**, or **Cannot be occupied**. Preview each group on the board, move misgrouped cells and merge variants. Re-running grouping preserves your classified groups. Save the case to apply changes; floor classification keeps rooms intact, and multi-cell objects should include every covered cell. Cells that cannot be occupied reject people and candidates without displaying exclusion crosses. Saving removes existing placements and notes from newly blocked cells.
+
+Groups are suggestions, not verified object recognition. Check the representative images and highlighted cells before classifying; scans, overlaid labels and unusual furniture may need manual correction. Group names and categories are preserved in local saves and JSON exports.
+
 ## Large maps
 
-Boards with either dimension at least 16 open in an 8×8 viewport. Smaller boards keep the full view. Choose a window size, click or drag the blue frame on the mini-map, or enter a global coordinate such as `M13`. Use **✥ 平移** (Pan) or the middle mouse button to drag the board. On the mini-map, arrow keys move one cell; Shift moves by the window size minus two cells.
+Boards with either dimension at least 16 open in an 8×8 viewport. Smaller boards keep the full view. Choose a window size, click or drag the blue frame on the mini-map, or enter a global coordinate such as `M13`. Use **✥ Pan** or the middle mouse button to drag the board. On the mini-map, arrow keys move one cell; Shift moves by the window size minus two cells.
 
-Global row/column exclusions include people outside the viewport. Letter badges on the coordinate axes identify those people and jump to their location. **定位人物** locates the selected person; **返回上一视野** returns to an earlier view in the current session. Switching views does not create a game undo step. On large boards, clicking the full-board overview opens a local view; it does not place a person.
+Global row/column exclusions include people outside the viewport. Letter badges on the coordinate axes identify those people and jump to their location. **Locate person** locates the selected person; **Previous view** returns to an earlier view in the current session. Switching views does not create a game undo step. On large boards, clicking the full-board overview opens a local view; it does not place a person.
 
 Placements, candidates, and ink remain attached to global coordinates. The view is saved per PDF page and included in JSON exports. Large PDF imports are rendered again with a 3600-pixel maximum page dimension for clearer artwork. Existing imports retain their original resolution until reimported. People can be searched or filtered to show only unplaced characters.
 
-![Original 24×24 navigation test scene](docs/images/large-map.png)
+![Original 24×24 navigation test scene](docs/images/large-map-en.png)
 
 ## Scope and limitations
 
