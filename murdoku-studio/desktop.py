@@ -57,12 +57,29 @@ def smoke_test():
 
 
 def main():
+    # Windowed Windows bundles have no console streams. HTTP logging still uses
+    # stderr, so provide real streams before starting the local server.
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8")
     parser = argparse.ArgumentParser()
     parser.add_argument("--smoke-test", action="store_true")
+    parser.add_argument("--smoke-report", type=Path, help=argparse.SUPPRESS)
     parser.add_argument("--ui-test", metavar="RESULT", help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.smoke_test:
-        smoke_test()
+        try:
+            smoke_test()
+            result = {"ok": True}
+        except Exception:
+            import traceback
+            result = {"ok": False, "error": traceback.format_exc()}
+        if args.smoke_report:
+            args.smoke_report.write_text(json.dumps(result), encoding="utf-8")
+        if not result["ok"]:
+            print(result["error"], file=sys.stderr)
+            raise SystemExit(1)
         return
     import webview
     storage = Path(args.ui_test).resolve().parent / "test-profile" if args.ui_test else data_directory()

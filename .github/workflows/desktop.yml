@@ -41,11 +41,15 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $process = Start-Process -FilePath 'dist/Murdoku Studio/Murdoku Studio.exe' -ArgumentList '--smoke-test' -Wait -PassThru
+          $process = Start-Process -FilePath 'dist/Murdoku Studio/Murdoku Studio.exe' -ArgumentList '--smoke-test --smoke-report desktop-smoke.json' -PassThru
+          if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Desktop smoke test timed out' }
+          Get-Content desktop-smoke.json
           if ($process.ExitCode -ne 0) { throw 'Desktop smoke test failed' }
       - name: Verify frozen application on macOS
         if: runner.os == 'macOS'
-        run: '"dist/Murdoku Studio.app/Contents/MacOS/Murdoku Studio" --smoke-test'
+        run: |
+          "dist/Murdoku Studio.app/Contents/MacOS/Murdoku Studio" --smoke-test --smoke-report desktop-smoke.json
+          cat desktop-smoke.json
       - uses: actions/upload-artifact@v7
         with:
           name: Murdoku-Studio-${{ matrix.os }}

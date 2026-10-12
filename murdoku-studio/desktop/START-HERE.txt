@@ -33,4 +33,4 @@ Review extracted names, clues, grids and suggested object groups.
 Independent fan tool, not an official Murdoku product.
 独立爱好者工具，非 Murdoku 官方产品。
 Project: https://github.com/Cara-Zinc/murdoku-studio
-Instructions: https://github.com/Cara-Zinc/murdoku-studio/blob/main/docs/DESKTOP.md
+Instructions: https://github.com/Cara-Zinc/murdoku-studio/blob/codex/desktop-preview/docs/DESKTOP.md
