@@ -4,3 +4,6 @@ pyinstaller>=6.16,<7
 pdfplumber>=0.11.9,<0.12
 pypdfium2>=4.30,<6
 Pillow>=11,<13
+# Newer releases dropped Intel macOS wheels; avoid a source build that links
+# against the runner's OpenSSL instead of the application's bundled libraries.
+cryptography==48.0.1; sys_platform == "darwin" and platform_machine == "x86_64"

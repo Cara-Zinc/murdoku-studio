@@ -31,6 +31,10 @@ Build on the target operating system with Python 3.12. PyInstaller bundles each 
 
 使用 Python 3.12，在目标操作系统上构建。PyInstaller 需要分别打包各平台；arm64 Mac 无法直接产出 Windows 可执行文件。工作流通过对应平台的 runner 构建 Windows x64、Mac arm64 与 Mac Intel。
 
+Intel Mac builds pin cryptography 48.0.1, the last release providing a universal2 wheel. Newer releases removed Intel macOS wheels; a source build can mix the runner's OpenSSL with the frozen app's libraries. Other platforms use the current dependency resolution. Exact shipped versions and upstream licenses are recorded in each app.
+
+Intel Mac 固定使用仍提供 universal2 预编译包的 cryptography 48.0.1，避免源码构建混用 runner 与应用内置的 OpenSSL。其他平台正常解析当前依赖。每个应用均记录实际依赖版本和原始许可证。上游变化见 [cryptography changelog](https://cryptography.io/en/50.0.2/changelog/)。
+
 ```bash
 python -m venv .venv-desktop
 # macOS: .venv-desktop/bin/python
