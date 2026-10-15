@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {normalizeView, viewBounds, containsCell, centerView, localToGlobal, globalToLocal, parseCoordinate} from '../public/viewport.js';
 import {makePuzzle, blankState, applyMove, autoBlocked} from '../public/engine.js';
 
-test('old saves choose a full small board and an 8×8 camera for large boards', () => {
+test('new and legacy maps default to overview regardless of size', () => {
   assert.equal(normalizeView({rows:9,cols:9}).mode,'overview');
-  assert.deepEqual(viewBounds({rows:24,cols:24}),{row:0,col:0,rows:8,cols:8});
-  assert.deepEqual(normalizeView({rows:24,cols:24},{mode:'bad',size:100,row:Infinity,col:-7}),{mode:'detail',size:8,row:0,col:0});
+  assert.deepEqual(viewBounds({rows:24,cols:24}),{row:0,col:0,rows:24,cols:24});
+  assert.deepEqual(normalizeView({rows:24,cols:24},{mode:'bad',size:100,row:Infinity,col:-7}),{mode:'overview',size:8,row:0,col:0});
 });
 
 test('camera clamps at far edges and supports rectangular boards', () => {

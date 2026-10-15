@@ -1,3 +1,4 @@
+import {setupLens} from './lens.js';
 import {normalizeView,viewBounds,containsCell,localToGlobal,globalToLocal} from './viewport.js';
 import {setupNavigation} from './navigation.js';
 import {makePuzzle,blankState,clone,validatePuzzle,validateState,applyMove,autoBlocked,candidateExclusions,assess,coverage,personLabel} from './engine.js';
@@ -33,6 +34,7 @@ function updateView(next){
   renderBoard();scheduleSave();
 }
 const navigation=setupNavigation({puzzle:p,progress:s,view:currentView,update:updateView,selected:()=>selected,coord,toast});
+const lens=setupLens({puzzle:p,bounds,detail:()=>currentView().mode==='detail',artwork:()=>$('show-art').checked});
 function toast(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,4500);}
 function message(title,text,actions=[]){$('message-title').textContent=title;$('message-body').replaceChildren();for(const paragraph of text.split('\n'))$('message-body').append(el('p','',paragraph));$('message-actions').replaceChildren();for(const {label,action,primary} of actions){const button=el('button',primary?'primary':'',label);button.onclick=()=>{$('message-dialog').close();action?.();};$('message-actions').append(button);}if(!actions.length){const button=el('button','primary','知道了');button.onclick=()=>$('message-dialog').close();$('message-actions').append(button);}if(!$('message-dialog').open)$('message-dialog').showModal();}
 function changed(){revision++;cancelSolver();scheduleSave();}
@@ -104,7 +106,7 @@ function renderBoard(){
     if(excluded)button.append(exclusionMark());
     fragment.append(button);
   });board.replaceChildren(fragment);
-  navigation.render(`${workspace.id}:${workspace.book?.page||1}`);syncPan();requestAnimationFrame(drawInk);
+  navigation.render(`${workspace.id}:${workspace.book?.page||1}`);syncPan();lens.render();requestAnimationFrame(drawInk);
 }
 function placedLetter(id){
   const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),text=document.createElementNS(ns,'text');
@@ -196,7 +198,7 @@ function renderPeople(){
 }
 function renderLegend(){const legend=$('room-legend');legend.replaceChildren();for(const room of p().rooms){if(!p().cells.some(c=>c.room===room.id))continue;const item=el('span','room-key'), dot=el('i');dot.style.background=room.color;item.append(dot,document.createTextNode(room.name));legend.append(item);}if(!legend.children.length)legend.append(el('span','','原图模式 · 区域与物品尚未标注'));}
 function renderTimer(){const time=Math.floor(s().elapsed);$('timer').textContent=`${Math.floor(time/60).toString().padStart(2,'0')}:${(time%60).toString().padStart(2,'0')}`;}
-function setZoom(value){zoom=Math.max(.5,Math.min(3,value));$('board-wrap').style.width=`${zoom*100}%`;$('board-wrap').style.maxWidth=zoom===1?'':'none';$('zoom-fit').textContent=`${Math.round(zoom*100)}%`;drawInk();}
+function setZoom(value){zoom=Math.max(.5,Math.min(3,value));$('lens-shell').style.setProperty('--lens-zoom',zoom);$('board-wrap').style.width=`${zoom*100}%`;$('board-wrap').style.maxWidth=zoom===1?'':'none';$('zoom-fit').textContent=`${Math.round(zoom*100)}%`;drawInk();}
 function drawInk(){const canvas=$('ink-canvas'),board=$('board'),dpr=window.devicePixelRatio||1;canvas.style.width=`${board.clientWidth}px`;canvas.style.height=`${board.clientHeight}px`;canvas.width=board.clientWidth*dpr;canvas.height=board.clientHeight*dpr;const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);ctx.strokeStyle='#be5939';ctx.lineWidth=2.6;ctx.lineCap='round';ctx.lineJoin='round';for(const stroke of [...s().ink,...(inkStroke?[inkStroke]:[])]){if(stroke.length<2)continue;ctx.beginPath();stroke.forEach(([x,y],i)=>{const [lx,ly]=globalToLocal(p(),bounds(),x,y);ctx[i?'lineTo':'moveTo'](lx*board.clientWidth,ly*board.clientHeight);});ctx.stroke();}}
 function cancelSolver(){if(solver){solver.terminate();solver=null;solverCancel?.();solverCancel=null;$('hint-btn').disabled=false;}}
 function runSolver(fixed){cancelSolver();const stamp=revision;return new Promise((resolve,reject)=>{const worker=new Worker('./solver-worker.js',{type:'module'});solver=worker;const timeout=setTimeout(()=>{worker.terminate();if(solver===worker)solver=null;reject(Error('推理超时，请补充更明确的规则或继续手动推理。'));},10000);solverCancel=()=>{clearTimeout(timeout);reject(Error('案件已改变，本次提示已取消。'));};worker.onmessage=({data})=>{clearTimeout(timeout);worker.terminate();solver=null;solverCancel=null;if(stamp!==revision)return reject(Error('布局已改变，请重新获取提示。'));data.error?reject(Error(data.error)):resolve(data.result);};worker.onerror=()=>{clearTimeout(timeout);worker.terminate();solver=null;solverCancel=null;reject(Error('推理引擎无法启动。'));};worker.postMessage({puzzle:clone(p()),fixed});});}
@@ -211,7 +213,7 @@ function accuse(){
   const result=assess(p(),s());if(!result.complete)return message('现场还没有还原','请先放置全部人物，再指认凶手。');if(result.errors.length)return check();
   message('谁与受害者独处？',result.verified?'选择你的嫌疑人。判定依据是你已核对的全部规则。':'本题规则尚未完整配置。你可以记录一个推测，但工具不会把它判定为通关。',p().people.filter(x=>!x.victim).map(person=>({label:`${person.id} · ${person.name}`,action:()=>{if(!result.verified){const next=clone(s());next.accusation=person.id;mutate(next);return message('已记录你的推测',`你怀疑 ${person.name}。补全并核对规则后，才能验证案件。`);}if(person.id!==result.killer)return message('再看看受害者的区域','凶手必须与受害者同处一个区域，而且那个区域恰好只有他们两个人。');const next=clone(s());next.accusation=person.id;mutate(next);paused=true;render();message('案件告破',`${person.name} 与受害者独处。所有人物位置都满足已核对的规则。\n调查用时 ${$('timer').textContent}。你可以导出存档，或导入下一份谜题。`);}})));
 }
-async function activate(next){await persist().catch(()=>{});workspace=next;selected=p().people[0].id;currentCell=bounds().row*p().cols+bounds().col;paused=false;panning=false;$('people-search').value='';$('only-unplaced').checked=false;zoom=1;setZoom(1);revision++;cancelSolver();render();scheduleSave();}
+async function activate(next){await persist().catch(()=>{});workspace=next;workspace.view=normalizeView(p(),{...workspace.view,mode:'overview'});selected=p().people[0].id;currentCell=bounds().row*p().cols+bounds().col;paused=false;panning=false;$('people-search').value='';$('only-unplaced').checked=false;zoom=1;setZoom(1);revision++;cancelSolver();render();scheduleSave();}
 function newWorkspace(puzzle,book=null){return {id:puzzle.id,puzzle,state:blankState(),undo:[],redo:[],book};}
 function openImport(){pending=null;$('people-page-fieldset').disabled=false;$('import-page').disabled=false;$('import-dialog').classList.remove('aligning');setImportActionBusy(false);$('import-start').hidden=false;$('alignment-step').hidden=true;$('import-status').textContent='';$('file-input').value='';$('import-dialog').showModal();}
 async function importFile(file){
@@ -606,6 +608,7 @@ setInterval(()=>{if(!paused&&!document.hidden&&!document.querySelector('dialog[o
 try{const saved=await currentCase();if(saved){validatePuzzle(saved.puzzle);saved.state=validateState(saved.puzzle,saved.state);workspace=saved;}}catch(error){toast(`未能恢复存档：${error.message}`);}
 try{setCrossWidth(await readSetting('crossWidth'));}catch{setCrossWidth(3);}
 try{cluesCollapsed=!!await readSetting('cluesCollapsed');}catch{}
+workspace.view=normalizeView(p(),{...workspace.view,mode:'overview'});
 render();chooseMode('place');scheduleSave();
 // Optional browser-native agent access. It shares the UI's validated state.
 if(document.modelContext?.registerTool){

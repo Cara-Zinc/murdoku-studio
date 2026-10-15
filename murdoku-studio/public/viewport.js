@@ -2,7 +2,7 @@
 export function normalizeView(puzzle, input = {}) {
   const finite = (value, fallback) => Number.isFinite(value) ? Math.trunc(value) : fallback;
   const size = [6, 8, 10, 12].includes(input?.size) ? input.size : 8;
-  const mode = ['detail', 'overview'].includes(input?.mode) ? input.mode : Math.max(puzzle.rows, puzzle.cols) >= 16 ? 'detail' : 'overview';
+  const mode = ['detail', 'overview'].includes(input?.mode) ? input.mode : 'overview';
   return {mode, size,
     row: Math.max(0, Math.min(puzzle.rows - Math.min(size, puzzle.rows), finite(input?.row, 0))),
     col: Math.max(0, Math.min(puzzle.cols - Math.min(size, puzzle.cols), finite(input?.col, 0)))};
